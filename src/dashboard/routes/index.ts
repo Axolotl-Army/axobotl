@@ -1,10 +1,10 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { Guild, CommandLog } from '../../shared/models';
 import sequelize from '../../shared/database';
 import { QueryTypes } from 'sequelize';
 
-const router = Router();
+const router: express.Router = Router();
 
 // ── Public routes ────────────────────────────────────────────────────
 
