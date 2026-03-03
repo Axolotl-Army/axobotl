@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test & Type-check
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: axobotl_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test:unit
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/axobotl_test
+          NODE_ENV: test
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: E2E tests
+        run: pnpm test:e2e
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/axobotl_test
+          NODE_ENV: test
+          SESSION_SECRET: ci-test-secret-not-for-production
+          DISCORD_TOKEN: placeholder
+          DISCORD_CLIENT_ID: placeholder
+          DISCORD_CLIENT_SECRET: placeholder
+          DISCORD_CALLBACK_URL: http://localhost:4000/auth/callback
+          PORT: 4000
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  docker:
+    name: Build Docker images
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USER }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Build & push bot
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: bot
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USER }}/axobotl-bot:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & push dashboard
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: dashboard
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USER }}/axobotl-dashboard:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

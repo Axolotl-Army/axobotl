@@ -1,0 +1,58 @@
+:root {
+  --sidebar-width: 200px;
+}
+
+body {
+  background-color: #0d1117;
+  font-size: 0.9rem;
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+}
+
+.sidebar .nav-link {
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  transition: background-color 0.15s ease;
+}
+
+.sidebar .nav-link:hover:not(.bg-primary) {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #fff !important;
+}
+
+.card {
+  border-radius: 0.5rem;
+}
+
+.table th {
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.6rem 1rem;
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.table td {
+  padding: 0.65rem 1rem;
+  vertical-align: middle;
+}
+
+code {
+  color: #79c0ff;
+  font-size: 0.85em;
+}
+
+.badge {
+  font-weight: 500;
+  font-size: 0.75em;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #484f58; }

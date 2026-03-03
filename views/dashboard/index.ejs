@@ -1,0 +1,89 @@
+<%- include('../partials/head', { title: 'Overview' }) %>
+<%- include('../partials/navbar') %>
+
+<div class="container-fluid">
+  <div class="row">
+    <%- include('../partials/sidebar', { activePage: 'home' }) %>
+
+    <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-0 fw-bold">Overview</h4>
+        <span class="text-muted small" id="last-updated">Loading...</span>
+      </div>
+
+      <!-- Stats cards -->
+      <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+          <div class="card bg-dark border-secondary h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+              <div class="p-2 bg-primary bg-opacity-25 rounded">
+                <i class="bi bi-server text-primary fs-4"></i>
+              </div>
+              <div>
+                <div class="text-muted small">Guilds</div>
+                <div class="fs-4 fw-bold"><%= stats.guildCount.toLocaleString() %></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <div class="card bg-dark border-secondary h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+              <div class="p-2 bg-success bg-opacity-25 rounded">
+                <i class="bi bi-terminal text-success fs-4"></i>
+              </div>
+              <div>
+                <div class="text-muted small">Commands Executed</div>
+                <div class="fs-4 fw-bold"><%= stats.totalCommands.toLocaleString() %></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent activity -->
+      <div class="card bg-dark border-secondary">
+        <div class="card-header border-secondary d-flex align-items-center justify-content-between">
+          <span class="fw-semibold">Recent Commands</span>
+          <a href="/dashboard/logs" class="btn btn-sm btn-outline-secondary">View all</a>
+        </div>
+        <div class="card-body p-0">
+          <% if (recentLogs.length === 0) { %>
+            <p class="text-muted text-center py-4 mb-0">No commands logged yet.</p>
+          <% } else { %>
+            <div class="table-responsive">
+              <table class="table table-dark table-hover mb-0">
+                <thead>
+                  <tr class="text-muted small">
+                    <th>Command</th>
+                    <th>User</th>
+                    <th>Status</th>
+                    <th>Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% recentLogs.forEach(log => { %>
+                    <tr>
+                      <td><code>/<%= log.command %></code></td>
+                      <td class="text-muted small"><%= log.username %></td>
+                      <td>
+                        <% if (log.successful) { %>
+                          <span class="badge bg-success">OK</span>
+                        <% } else { %>
+                          <span class="badge bg-danger">Error</span>
+                        <% } %>
+                      </td>
+                      <td class="text-muted small"><%= new Date(log.createdAt).toLocaleString() %></td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<%- include('../partials/scripts') %>

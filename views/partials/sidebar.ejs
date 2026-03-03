@@ -1,0 +1,21 @@
+<nav class="col-md-2 d-none d-md-block bg-dark sidebar border-end border-secondary" style="min-height: calc(100vh - 57px);">
+  <div class="px-3 pt-4">
+    <ul class="nav flex-column gap-1">
+      <li class="nav-item">
+        <a class="nav-link rounded d-flex align-items-center gap-2 <%= activePage === 'home' ? 'active bg-primary text-white' : 'text-secondary' %>" href="/dashboard">
+          <i class="bi bi-speedometer2"></i> Overview
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link rounded d-flex align-items-center gap-2 <%= activePage === 'commands' ? 'active bg-primary text-white' : 'text-secondary' %>" href="/dashboard/commands">
+          <i class="bi bi-terminal"></i> Commands
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link rounded d-flex align-items-center gap-2 <%= activePage === 'logs' ? 'active bg-primary text-white' : 'text-secondary' %>" href="/dashboard/logs">
+          <i class="bi bi-journal-text"></i> Logs
+        </a>
+      </li>
+    </ul>
+  </div>
+</nav>
