@@ -9,8 +9,8 @@ router.get(
   '/callback',
   passport.authenticate('discord', { failureRedirect: '/login?error=auth_failed' }),
   (req, res) => {
-    const returnTo = (req.session as { returnTo?: string }).returnTo ?? '/dashboard';
-    delete (req.session as { returnTo?: string }).returnTo;
+    const returnTo = req.session.returnTo ?? '/dashboard';
+    delete req.session.returnTo;
     res.redirect(returnTo);
   },
 );
