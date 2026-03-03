@@ -1,7 +1,7 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import passport from 'passport';
 
-const router = Router();
+const router: express.Router = Router();
 
 router.get('/discord', passport.authenticate('discord'));
 
