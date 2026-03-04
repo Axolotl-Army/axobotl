@@ -78,7 +78,7 @@ async function start(): Promise<void> {
   await sequelize.sync({ alter: process.env['NODE_ENV'] === 'development' });
   console.log('[Dashboard] Database connected');
 
-  await new Promise<void>((resolve) => app.listen(PORT, resolve));
+  await new Promise<void>((resolve) => app.listen(PORT, () => resolve()));
   console.log(`[Dashboard] Running at http://localhost:${PORT}`);
 }
 
