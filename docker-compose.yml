@@ -19,6 +19,7 @@ services:
     restart: unless-stopped
 
   bot:
+    image: ghcr.io/${GHCR_OWNER}/axobotl-bot:main
     build:
       context: .
       target: bot
@@ -32,6 +33,7 @@ services:
     restart: unless-stopped
 
   dashboard:
+    image: ghcr.io/${GHCR_OWNER}/axobotl-dashboard:main
     build:
       context: .
       target: dashboard
