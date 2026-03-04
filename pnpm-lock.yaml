@@ -22,8 +22,8 @@ importers:
         specifier: ^14.16.3
         version: 14.25.1
       dotenv:
-        specifier: ^16.4.5
-        version: 16.6.1
+        specifier: ^17.3.1
+        version: 17.3.1
       ejs:
         specifier: ^4.0.1
         version: 4.0.1
@@ -651,8 +651,8 @@ packages:
     resolution: {integrity: sha512-2l0gsPOLPs5t6GFZfQZKnL1OJNYFcuC/ETWsW4VtKVD/tg4ICa9x+jb9bkPffkMdRpRpuUaO/fKkHCBeiCKh8g==}
     engines: {node: '>=18'}
 
-  dotenv@16.6.1:
-    resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
+  dotenv@17.3.1:
+    resolution: {integrity: sha512-IO8C/dzEb6O3F9/twg6ZLXz164a2fhTnEWb95H23Dm4OuN+92NmEAlTrupP9VW6Jm3sO26tQlqyvyi4CsnY9GA==}
     engines: {node: '>=12'}
 
   dottie@2.0.7:
@@ -1836,7 +1836,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  dotenv@16.6.1: {}
+  dotenv@17.3.1: {}
 
   dottie@2.0.7: {}
 
