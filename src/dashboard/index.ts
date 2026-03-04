@@ -31,7 +31,7 @@ app.use(express.json());
 // ── Session ──────────────────────────────────────────────────────────
 app.use(
   session({
-    store: new PgStore({ conString: process.env['DATABASE_URL'] }),
+    store: new PgStore({ conString: process.env['DATABASE_URL'], createTableIfMissing: true }),
     secret: process.env['SESSION_SECRET']!,
     resave: false,
     saveUninitialized: false,
