@@ -56,5 +56,11 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "pnpm": {
+    "overrides": {
+      "undici": ">=6.23.0",
+      "esbuild": ">=0.25.0"
+    }
   }
 }
