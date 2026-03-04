@@ -3,13 +3,20 @@ name: CI
 on:
   push:
     branches: [main, develop]
+    tags: ['v*']
   pull_request:
     branches: [main]
+
+# Deny all permissions by default — each job grants only what it needs.
+permissions: {}
 
 jobs:
   test:
     name: Test & Type-check
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
 
     services:
       postgres:
@@ -82,10 +89,14 @@ jobs:
           retention-days: 7
 
   docker:
-    name: Build Docker images
+    name: Publish Docker images
     runs-on: ubuntu-latest
     needs: test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - uses: actions/checkout@v4
@@ -94,8 +105,31 @@ jobs:
 
       - uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_HUB_USER }}
-          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (bot)
+        id: meta-bot
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/axobotl-bot
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-
+
+      - name: Extract metadata (dashboard)
+        id: meta-dashboard
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/axobotl-dashboard
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-
 
       - name: Build & push bot
         uses: docker/build-push-action@v6
@@ -103,7 +137,8 @@ jobs:
           context: .
           target: bot
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USER }}/axobotl-bot:latest
+          tags: ${{ steps.meta-bot.outputs.tags }}
+          labels: ${{ steps.meta-bot.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -113,6 +148,7 @@ jobs:
           context: .
           target: dashboard
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USER }}/axobotl-dashboard:latest
+          tags: ${{ steps.meta-dashboard.outputs.tags }}
+          labels: ${{ steps.meta-dashboard.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
