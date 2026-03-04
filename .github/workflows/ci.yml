@@ -7,8 +7,8 @@ on:
   pull_request:
     branches: [main]
 
-# Deny all permissions by default — each job grants only what it needs.
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -17,6 +17,7 @@ jobs:
 
     permissions:
       contents: read
+      actions: write
 
     services:
       postgres:

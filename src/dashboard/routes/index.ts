@@ -1,4 +1,5 @@
 import express, { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { requireAuth } from '../middleware/auth';
 import { Guild, CommandLog } from '../../shared/models';
 import sequelize from '../../shared/database';
@@ -6,14 +7,17 @@ import { QueryTypes } from 'sequelize';
 
 const router: express.Router = Router();
 
+const webLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false });
+const apiLimiter = rateLimit({ windowMs: 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false });
+
 // ── Public routes ────────────────────────────────────────────────────
 
-router.get('/', (req, res) => {
+router.get('/', webLimiter, (req, res) => {
   if (req.isAuthenticated()) return res.redirect('/dashboard');
   res.redirect('/login');
 });
 
-router.get('/login', (req, res) => {
+router.get('/login', webLimiter, (req, res) => {
   if (req.isAuthenticated()) return res.redirect('/dashboard');
   const error = req.query['error'];
   res.render('login', {
@@ -29,7 +33,7 @@ router.get('/health', (_req, res) => {
 
 // ── Protected routes ─────────────────────────────────────────────────
 
-router.get('/dashboard', requireAuth, async (req, res) => {
+router.get('/dashboard', webLimiter, requireAuth, async (req, res) => {
   const [guildCount, totalCommands] = await Promise.all([
     Guild.count(),
     CommandLog.count(),
@@ -49,7 +53,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
   });
 });
 
-router.get('/dashboard/commands', requireAuth, async (req, res) => {
+router.get('/dashboard/commands', webLimiter, requireAuth, async (req, res) => {
   const commandStats = await sequelize.query<{ command: string; count: string; last_used: Date }>(
     `SELECT command, COUNT(*) as count, MAX("createdAt") as last_used
      FROM command_logs
@@ -66,7 +70,7 @@ router.get('/dashboard/commands', requireAuth, async (req, res) => {
   });
 });
 
-router.get('/dashboard/logs', requireAuth, async (req, res) => {
+router.get('/dashboard/logs', webLimiter, requireAuth, async (req, res) => {
   const page = Math.max(1, parseInt(String(req.query['page'] ?? '1'), 10));
   const limit = 20;
   const offset = (page - 1) * limit;
@@ -91,7 +95,7 @@ router.get('/dashboard/logs', requireAuth, async (req, res) => {
 
 // ── API routes (v1) ───────────────────────────────────────────────────
 
-router.get('/api/v1/stats', requireAuth, async (_req, res) => {
+router.get('/api/v1/stats', apiLimiter, requireAuth, async (_req, res) => {
   const [guildCount, totalCommands] = await Promise.all([
     Guild.count(),
     CommandLog.count(),
@@ -99,7 +103,7 @@ router.get('/api/v1/stats', requireAuth, async (_req, res) => {
   res.json({ guildCount, totalCommands });
 });
 
-router.get('/api/v1/guilds', requireAuth, async (_req, res) => {
+router.get('/api/v1/guilds', apiLimiter, requireAuth, async (_req, res) => {
   const guilds = await Guild.findAll({ order: [['name', 'ASC']] });
   res.json(guilds);
 });
