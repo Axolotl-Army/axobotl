@@ -22,6 +22,7 @@ for (const key of requiredEnv) {
 const app = express();
 const PgStore = pgSession(session);
 
+app.set('trust proxy', 1); // trust first hop (Docker network / reverse proxy)
 app.set('view engine', 'ejs');
 app.set('views', path.join(process.cwd(), 'views'));
 app.use(express.static(path.join(process.cwd(), 'public')));
@@ -36,7 +37,7 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env['NODE_ENV'] === 'production',
+      secure: process.env['SESSION_SECURE_COOKIE'] === 'true',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   }),
