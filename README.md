@@ -56,10 +56,12 @@ For local development with hot-reload, install [pnpm](https://pnpm.io) and Node.
 
 Pre-built images are published to GitHub Container Registry on every push to `main`:
 
-| Image | Tag |
-|---|---|
-| `ghcr.io/axolotl-army/axobotl-bot` | `latest`, `main`, `vX.Y.Z` |
-| `ghcr.io/axolotl-army/axobotl-dashboard` | `latest`, `main`, `vX.Y.Z` |
+| Image | Tag | When |
+|---|---|---|
+| `ghcr.io/axolotl-army/axobotl-bot` | `latest`, `vX.Y`, `vX.Y.Z` | Version tag push |
+| `ghcr.io/axolotl-army/axobotl-bot` | `dev`, `main`, `sha-*` | Push to `main` |
+| `ghcr.io/axolotl-army/axobotl-dashboard` | `latest`, `vX.Y`, `vX.Y.Z` | Version tag push |
+| `ghcr.io/axolotl-army/axobotl-dashboard` | `dev`, `main`, `sha-*` | Push to `main` |
 
 To use your own fork's images, set `GHCR_OWNER=your-github-username` in `.env`.
 
