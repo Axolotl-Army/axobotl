@@ -14,9 +14,8 @@ import createInteractionEvent from './events/interactionCreate';
 import guildCreateEvent from './events/guildCreate';
 
 // ── Environment validation ──────────────────────────────────────────
-if (!process.env['DISCORD_TOKEN']) {
-  throw new Error('DISCORD_TOKEN environment variable is required');
-}
+const token = process.env['DISCORD_TOKEN'];
+if (!token) throw new Error('DISCORD_TOKEN environment variable is required');
 
 // ── Client setup ────────────────────────────────────────────────────
 const client = new Client({
@@ -34,7 +33,7 @@ const commands = new Map<string, SlashCommand>([
 
 // ── Event registration ──────────────────────────────────────────────
 const events = [
-  readyEvent,
+  readyEvent(commands),
   createInteractionEvent(commands),
   guildCreateEvent,
 ];
@@ -55,7 +54,7 @@ async function start(): Promise<void> {
   console.log('[Bot] Database connected');
 
   console.log('[Bot] Logging in to Discord...');
-  await client.login(process.env['DISCORD_TOKEN']);
+  await client.login(token);
 }
 
 // ── Graceful shutdown ────────────────────────────────────────────────
