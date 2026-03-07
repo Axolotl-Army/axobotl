@@ -8,29 +8,37 @@ Discord bot with web management dashboard.
 
 ## Quick Start
 
+No local Node.js or package installation required — just Docker.
+
 ```bash
-# 1. Install dependencies
-pnpm install
-
-# 2. Configure environment
+# 1. Configure environment
 cp .env.example .env
-# Fill in DISCORD_TOKEN, DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DATABASE_URL, SESSION_SECRET
+# Edit .env: fill in DISCORD_TOKEN, DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET,
+#            SESSION_SECRET, and DISCORD_CALLBACK_URL
 
-# 3. Start PostgreSQL
-docker compose up postgres -d
-
-# 4. Sync database
-pnpm db:sync
-
-# 5. Register slash commands
-pnpm deploy-commands
-
-# 6. Start development
-pnpm dev
-# Bot runs with live reload, Dashboard at http://localhost:3000
+# 2. Start everything
+docker compose up -d
 ```
 
-## Commands
+The bot and dashboard pull pre-built images from GHCR automatically.
+Database tables and slash commands are set up on first start.
+
+Dashboard is available at **http://localhost:3000**
+
+```bash
+# View logs
+docker compose logs -f
+
+# Stop
+docker compose down
+
+# Stop and remove database volume
+docker compose down -v
+```
+
+## Development
+
+For local development with hot-reload, install [pnpm](https://pnpm.io) and Node.js 22+:
 
 | Script | Description |
 |---|---|
@@ -44,17 +52,24 @@ pnpm dev
 | `pnpm test:unit` | Unit tests |
 | `pnpm test:e2e` | E2E tests |
 
-## Docker
+## Docker Images
+
+Pre-built images are published to GitHub Container Registry on every push to `main`:
+
+| Image | Tag |
+|---|---|
+| `ghcr.io/axolotl-army/axobotl-bot` | `latest`, `main`, `vX.Y.Z` |
+| `ghcr.io/axolotl-army/axobotl-dashboard` | `latest`, `main`, `vX.Y.Z` |
+
+To use your own fork's images, set `GHCR_OWNER=your-github-username` in `.env`.
 
 ```bash
-# Run everything
-docker compose up -d
-
-# Bot only
+# Run specific services
 docker compose up bot postgres -d
-
-# Dashboard only
 docker compose up dashboard postgres -d
+
+# Build images locally instead of pulling
+docker compose build
 ```
 
 ## Environment Variables

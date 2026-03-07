@@ -1,5 +1,5 @@
 # Stage 1: Builder
-FROM node:25-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 
 RUN npm install -g pnpm --ignore-scripts
@@ -12,7 +12,7 @@ COPY src/ ./src/
 RUN pnpm build
 
 # Stage 2: Bot runner
-FROM node:25-alpine AS bot
+FROM node:22-alpine AS bot
 WORKDIR /app
 ENV NODE_ENV=production
 
@@ -27,7 +27,7 @@ USER appuser
 CMD ["node", "dist/bot/index.js"]
 
 # Stage 3: Dashboard runner
-FROM node:25-alpine AS dashboard
+FROM node:22-alpine AS dashboard
 WORKDIR /app
 ENV NODE_ENV=production
 

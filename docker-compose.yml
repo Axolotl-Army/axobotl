@@ -19,7 +19,7 @@ services:
     restart: unless-stopped
 
   bot:
-    image: ghcr.io/${GHCR_OWNER}/axobotl-bot:main
+    image: ghcr.io/${GHCR_OWNER:-axolotl-army}/axobotl-bot:latest
     build:
       context: .
       target: bot
@@ -33,7 +33,7 @@ services:
     restart: unless-stopped
 
   dashboard:
-    image: ghcr.io/${GHCR_OWNER}/axobotl-dashboard:main
+    image: ghcr.io/${GHCR_OWNER:-axolotl-army}/axobotl-dashboard:latest
     build:
       context: .
       target: dashboard
