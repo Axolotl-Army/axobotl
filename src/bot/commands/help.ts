@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
 import type { SlashCommand } from '../types';
 
 export const command: SlashCommand = {
@@ -17,6 +17,6 @@ export const command: SlashCommand = {
       .setFooter({ text: 'More commands coming soon!' })
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   },
 };
