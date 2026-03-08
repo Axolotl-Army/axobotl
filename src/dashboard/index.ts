@@ -76,7 +76,7 @@ const PORT = parseInt(process.env['PORT'] ?? process.env['DASHBOARD_PORT'] ?? '3
 async function start(): Promise<void> {
   console.log('[Dashboard] Connecting to database...');
   await sequelize.authenticate();
-  await sequelize.sync({ alter: true });
+  await sequelize.sync();
   console.log('[Dashboard] Database connected');
 
   await new Promise<void>((resolve) => app.listen(PORT, () => resolve()));
