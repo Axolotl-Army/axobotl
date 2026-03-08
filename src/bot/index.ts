@@ -60,7 +60,7 @@ for (const event of events) {
 async function start(): Promise<void> {
   console.log('[Bot] Connecting to database...');
   await sequelize.authenticate();
-  await sequelize.sync({ alter: process.env['NODE_ENV'] === 'development' });
+  await sequelize.sync({ alter: true });
   console.log('[Bot] Database connected');
 
   console.log('[Bot] Logging in to Discord...');
