@@ -47,7 +47,7 @@ UserLevel.init(
       type: DataTypes.DATE,
       allowNull: true,
       defaultValue: null,
-      comment: 'Timestamp of the last XP award for cooldown tracking',
+      comment: 'Timestamp of the last XP award. Cooldown is enforced in-memory; this field persists the value for future cooldown restoration across restarts if needed.',
     },
     createdAt: DataTypes.DATE,
     updatedAt: DataTypes.DATE,

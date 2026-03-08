@@ -7,6 +7,8 @@ const XP_MIN = 7;
 const XP_MAX = 13;
 const DEFAULT_LEVEL_UP_MESSAGE = 'GG {user}, you reached **level {level}**!';
 const MAX_LEVEL_UP_ANNOUNCEMENTS = 5;
+// PostgreSQL INTEGER max — xp column type upper bound
+const XP_MAX_VALUE = 2_147_483_647;
 
 // ── Leveling formula ──────────────────────────────────────────────────────────
 
@@ -70,9 +72,9 @@ export function computeXpUpdate(
 
   let newXp: number;
   if (mode === 'set') {
-    newXp = Math.max(0, Math.min(delta, Number.MAX_SAFE_INTEGER));
+    newXp = Math.max(0, Math.min(delta, XP_MAX_VALUE));
   } else {
-    newXp = Math.max(0, Math.min(currentXp + delta, Number.MAX_SAFE_INTEGER));
+    newXp = Math.max(0, Math.min(currentXp + delta, XP_MAX_VALUE));
   }
 
   const newLevel = getLevelFromXp(newXp);
@@ -124,4 +126,4 @@ export function randomXp(): number {
   return XP_MIN + Math.floor(Math.random() * (XP_MAX - XP_MIN + 1));
 }
 
-export { DEFAULT_LEVEL_UP_MESSAGE, COOLDOWN_MS, XP_MIN, XP_MAX, MAX_LEVEL_UP_ANNOUNCEMENTS };
+export { DEFAULT_LEVEL_UP_MESSAGE, COOLDOWN_MS, XP_MIN, XP_MAX, MAX_LEVEL_UP_ANNOUNCEMENTS, XP_MAX_VALUE };

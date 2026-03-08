@@ -161,4 +161,4 @@ None — this is a self-contained feature.
 
 ## Known Issues
 
-<!-- Empty — populated by future audits -->
+All findings from the 2026-03-09 audit have been resolved.

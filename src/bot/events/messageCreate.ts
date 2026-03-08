@@ -14,14 +14,13 @@ const messageCreateEvent: BotEvent = {
   name: Events.MessageCreate,
   async execute(message: Message) {
     if (message.author.bot) return;
+    if (message.system) return;
     if (!message.guildId) return;
 
     const { guildId } = message;
     const userId = message.author.id;
 
     if (isOnCooldown(guildId, userId)) return;
-
-    recordXpAwarded(guildId, userId);
 
     const xpToAdd = randomXp();
 
@@ -38,6 +37,9 @@ const messageCreateEvent: BotEvent = {
         level: result.newLevel,
         lastXpAt: new Date(),
       });
+
+      // Record cooldown only after a successful DB write
+      recordXpAwarded(guildId, userId);
 
       if (result.shouldNotify) {
         const guildRecord = await Guild.findByPk(guildId);
