@@ -9,6 +9,7 @@ import {
   computeXpUpdate,
   DEFAULT_LEVEL_UP_MESSAGE,
   MAX_LEVEL_UP_ANNOUNCEMENTS,
+  XP_MAX_VALUE,
 } from '../../src/bot/utils/levelUtils';
 
 // ── getLevelFromXp ────────────────────────────────────────────────────────────
@@ -242,8 +243,8 @@ describe('business rules', () => {
     expect(result.levelsToAnnounce.length).toBe(1);
   });
 
-  it('should not allow XP to exceed Number.MAX_SAFE_INTEGER', () => {
-    const result = computeXpUpdate(Number.MAX_SAFE_INTEGER, 1);
-    expect(result.newXp).toBeLessThanOrEqual(Number.MAX_SAFE_INTEGER);
+  it('should not allow XP to exceed the PostgreSQL INTEGER max (2,147,483,647)', () => {
+    const result = computeXpUpdate(XP_MAX_VALUE, 1);
+    expect(result.newXp).toBe(XP_MAX_VALUE);
   });
 });

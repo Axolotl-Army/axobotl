@@ -34,7 +34,7 @@ export const command: SlashCommand = {
     const embed = new EmbedBuilder()
       .setColor(0x5865f2)
       .setAuthor({ name: target.displayName, iconURL: target.displayAvatarURL() })
-      .setTitle(`Level ${level}`)
+      .setTitle(level === 0 ? 'Not ranked yet' : `Level ${level}`)
       .addFields(
         { name: 'Total XP', value: `${totalXp.toLocaleString()}`, inline: true },
         { name: 'Guild Rank', value: `#${rank}`, inline: true },

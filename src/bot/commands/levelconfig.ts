@@ -30,7 +30,7 @@ export const command: SlashCommand = {
     const isReset = message.toLowerCase() === RESET_KEYWORD;
     const newTemplate = isReset ? null : message;
 
-    await Guild.update({ levelUpMessage: newTemplate }, { where: { id: guildId } });
+    await Guild.upsert({ id: guildId, name: interaction.guild?.name ?? guildId, levelUpMessage: newTemplate });
 
     const preview = formatLevelUpMessage(newTemplate, `<@${interaction.user.id}>`, 5);
 

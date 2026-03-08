@@ -26,12 +26,14 @@ export const command: SlashCommand = {
       return;
     }
 
-    // Build leaderboard lines
+    // Build leaderboard lines — use cache first to avoid unnecessary REST calls
     const lines: string[] = await Promise.all(
       topRecords.map(async (record, idx) => {
         let username: string;
         try {
-          const member = await interaction.guild!.members.fetch(record.userId);
+          const member =
+            interaction.guild!.members.cache.get(record.userId) ??
+            await interaction.guild!.members.fetch(record.userId);
           username = member.displayName;
         } catch {
           username = `<@${record.userId}>`;
