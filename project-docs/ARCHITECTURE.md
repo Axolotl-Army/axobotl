@@ -1,66 +1,141 @@
 # Architecture — Axobotl
 
-## Overview
-
-Axobotl is a Discord bot with a web management dashboard, structured as two separate Node.js processes sharing a PostgreSQL database via Sequelize.
-
-## Services
+## System Overview
 
 ```
-┌─────────────────────────────────────────┐
-│                axobotl                  │
-│                                         │
-│  ┌──────────────┐  ┌──────────────────┐ │
-│  │  Bot Service │  │ Dashboard Service│ │
-│  │  discord.js  │  │  Express + EJS   │ │
-│  │   Port: N/A  │  │  Port: 3000      │ │
-│  └──────┬───────┘  └────────┬─────────┘ │
-│         │                   │           │
-│         └─────────┬─────────┘           │
-│                   │                     │
-│          ┌────────▼────────┐            │
-│          │ Shared Models   │            │
-│          │   (Sequelize)   │            │
-│          └────────┬────────┘            │
-│                   │                     │
-│          ┌────────▼────────┐            │
-│          │   PostgreSQL    │            │
-│          │   Port: 5432    │            │
-│          └─────────────────┘            │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                            axobotl                                  │
+│                                                                     │
+│   Discord Gateway                                                   │
+│   ┌─────────────┐   WebSocket    ┌──────────────────────────────┐  │
+│   │   Discord   │<─────────────->│       Bot Service            │  │
+│   │   API/GW    │  slash cmds    │  src/bot/index.ts            │  │
+│   └─────────────┘                │  events: ready, interaction, │  │
+│                                  │          guildCreate         │  │
+│                                  │  commands: /ping, /help      │  │
+│                                  └──────────────┬───────────────┘  │
+│                                                 │                  │
+│   Browser                                       │ Sequelize        │
+│   ┌─────────────┐   HTTP :3000   ┌─────────────┴──────────────┐   │
+│   │    User     │<─────────────->│     Dashboard Service       │   │
+│   │   Browser   │   EJS views    │  src/dashboard/index.ts     │   │
+│   └─────────────┘                │  Express + Passport.js      │   │
+│                                  │  Session store (PostgreSQL)  │   │
+│                                  └──────────────┬──────────────┘   │
+│                                                 │                  │
+│                                        read/write│                  │
+│                                                 ▼                  │
+│                                  ┌──────────────────────────────┐  │
+│                                  │       Shared Models          │  │
+│                                  │  src/shared/models/          │  │
+│                                  │  Guild, CommandLog           │  │
+│                                  │  (Sequelize ORM)             │  │
+│                                  └──────────────┬───────────────┘  │
+│                                                 │                  │
+│                                                 ▼                  │
+│                                  ┌──────────────────────────────┐  │
+│                                  │        PostgreSQL 16          │  │
+│                                  │        Port: 5432            │  │
+│                                  │  tables: guilds,             │  │
+│                                  │          command_logs        │  │
+│                                  └──────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
 ```
+
+## Service Responsibilities
+
+| Service | Process | Entry Point | Responsibilities |
+|---|---|---|---|
+| Bot | `src/bot/index.ts` | discord.js Client | Handle slash commands, log to DB, upsert guilds on join |
+| Dashboard | `src/dashboard/index.ts` | Express :3000 | Serve EJS views, Discord OAuth2, REST API v1 |
+| Shared | `src/shared/` | (imported by both) | Sequelize instance, Guild + CommandLog models |
 
 ## Data Flow
 
-1. **Bot** — Receives Discord gateway events, executes slash commands, logs to PostgreSQL
-2. **Dashboard** — Express server serves EJS views; users authenticate via Discord OAuth2
-3. **Shared models** — `Guild` and `CommandLog` are defined once and used by both services
+1. **Bot** — Connects via Discord Gateway (WebSocket); on slash command, executes handler and writes `CommandLog` row; on `guildCreate`, upserts `Guild` row.
+2. **Dashboard** — User visits `/login` → Discord OAuth2 redirect → `/auth/callback` → session stored in PostgreSQL → protected views query `Guild` and `CommandLog` via Sequelize.
+3. **Shared models** — `Guild` and `CommandLog` defined once in `src/shared/models/`, imported by both services.
+
+## API Routes
+
+```
+Routes Map
+==========
+
+  /auth/
+  ├── GET    /discord           → passport.authenticate('discord')
+  ├── GET    /callback          → OAuth2 callback, redirect to /dashboard
+  └── POST   /logout            → req.logout(), redirect to /
+
+  /
+  ├── GET    /                  → redirect to /dashboard or /login
+  ├── GET    /login             → render login view
+  ├── GET    /health            → { status: 'ok', timestamp }
+  │
+  ├── GET    /dashboard         → [auth] overview: guildCount, totalCommands, recentLogs
+  ├── GET    /dashboard/commands→ [auth] command stats grouped by name
+  └── GET    /dashboard/logs    → [auth] paginated command_logs (20/page)
+
+  /api/v1/
+  ├── GET    /stats             → [auth] { guildCount, totalCommands }
+  └── GET    /guilds            → [auth] all guilds ordered by name
+
+  [auth] = requireAuth middleware (redirect to /login if unauthenticated)
+```
+
+## Bot Commands
+
+| Command | Description | Response |
+|---|---|---|
+| `/ping` | Check bot latency | Bot latency + API latency (ms) |
+| `/help` | List available commands | Ephemeral embed with command list |
+
+## Bot Events
+
+| Event | Handler | Action |
+|---|---|---|
+| `ready` (once) | `src/bot/events/ready.ts` | Log startup, register slash commands to guild/global |
+| `interactionCreate` | `src/bot/events/interactionCreate.ts` | Route to command handler, log result to DB |
+| `guildCreate` | `src/bot/events/guildCreate.ts` | Upsert Guild record in DB |
 
 ## Database Schema
 
-### guilds
-| Column | Type | Notes |
-|---|---|---|
-| id | VARCHAR(20) | Discord guild snowflake, PK |
-| name | VARCHAR(100) | Guild display name |
-| prefix | VARCHAR(10) | Legacy prefix (default `!`) |
-| logsChannelId | VARCHAR(20) | Channel for bot activity logs |
-| language | VARCHAR(10) | Locale code (default `en`) |
-| createdAt, updatedAt | TIMESTAMPTZ | Auto-managed |
-
-### command_logs
-| Column | Type | Notes |
-|---|---|---|
-| id | SERIAL | Auto-increment PK |
-| guildId | VARCHAR(20) | FK → guilds.id |
-| userId | VARCHAR(20) | Discord user snowflake |
-| username | VARCHAR(100) | User's display tag |
-| command | VARCHAR(100) | Slash command name |
-| successful | BOOLEAN | Whether execution succeeded |
-| createdAt | TIMESTAMPTZ | Auto-managed |
+```
+  ┌──────────────────────────────┐
+  │           guilds             │
+  ├──────────────────────────────┤
+  │ id           VARCHAR(20) PK  │  ← Discord guild snowflake
+  │ name         VARCHAR(100)    │
+  │ prefix       VARCHAR(10)     │  default: '!'
+  │ logsChannelId VARCHAR(20)    │  nullable
+  │ language     VARCHAR(10)     │  default: 'en'
+  │ createdAt    TIMESTAMPTZ     │
+  │ updatedAt    TIMESTAMPTZ     │
+  └──────────────┬───────────────┘
+                 │ hasMany
+                 │
+  ┌──────────────▼───────────────┐
+  │         command_logs         │
+  ├──────────────────────────────┤
+  │ id           SERIAL     PK   │
+  │ guildId      VARCHAR(20) FK  │  → guilds.id
+  │ userId       VARCHAR(20)     │  Discord user snowflake
+  │ username     VARCHAR(100)    │
+  │ command      VARCHAR(100)    │
+  │ successful   BOOLEAN         │  default: true
+  │ createdAt    TIMESTAMPTZ     │
+  └──────────────────────────────┘
+```
 
 ## Auth Flow (Dashboard)
 
 ```
-User → /auth/discord → Discord OAuth2 → /auth/callback → session → /dashboard
+User → GET /login → GET /auth/discord → Discord OAuth2 → GET /auth/callback
+     → session created (PostgreSQL) → GET /dashboard
 ```
+
+## Changelog
+
+| Date | Change |
+|---|---|
+| 2026-03-08 | Updated all diagrams from code scan (architecture, API routes, database schema) |
