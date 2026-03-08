@@ -13,9 +13,7 @@ export const command: SlashCommand = {
     .addSubcommand((sub) =>
       sub
         .setName('setmessage')
-        .setDescription(
-          'Set the level-up message template. Use {user} and {level} as placeholders. Type "reset" to restore default.',
-        )
+        .setDescription('Level-up template. Use {user}, {level} as placeholders, or "reset" to restore default.')
         .addStringOption((opt) =>
           opt
             .setName('message')
