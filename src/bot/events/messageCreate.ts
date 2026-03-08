@@ -1,0 +1,60 @@
+import { Events, Message } from 'discord.js';
+import type { BotEvent } from '../types';
+import { UserLevel } from '../../shared/models/UserLevel';
+import { Guild } from '../../shared/models/Guild';
+import {
+  isOnCooldown,
+  recordXpAwarded,
+  randomXp,
+  computeXpUpdate,
+  formatLevelUpMessage,
+} from '../utils/levelUtils';
+
+const messageCreateEvent: BotEvent = {
+  name: Events.MessageCreate,
+  async execute(message: Message) {
+    if (message.author.bot) return;
+    if (!message.guildId) return;
+
+    const { guildId } = message;
+    const userId = message.author.id;
+
+    if (isOnCooldown(guildId, userId)) return;
+
+    recordXpAwarded(guildId, userId);
+
+    const xpToAdd = randomXp();
+
+    try {
+      const [record] = await UserLevel.findOrCreate({
+        where: { guildId, userId },
+        defaults: { guildId, userId, xp: 0, level: 0, lastXpAt: null },
+      });
+
+      const result = computeXpUpdate(record.xp, xpToAdd);
+
+      await record.update({
+        xp: result.newXp,
+        level: result.newLevel,
+        lastXpAt: new Date(),
+      });
+
+      if (result.shouldNotify) {
+        const guildRecord = await Guild.findByPk(guildId);
+        const template = guildRecord?.levelUpMessage ?? null;
+        const userMention = `<@${userId}>`;
+
+        // message.guildId is confirmed non-null above, so this is a guild text channel
+        const channel = message.channel as { send: (content: string) => Promise<unknown> };
+        for (const lvl of result.levelsToAnnounce) {
+          const msg = formatLevelUpMessage(template, userMention, lvl);
+          await channel.send(msg);
+        }
+      }
+    } catch (err) {
+      console.error('[Leveling] Failed to process XP for message:', err);
+    }
+  },
+};
+
+export default messageCreateEvent;
