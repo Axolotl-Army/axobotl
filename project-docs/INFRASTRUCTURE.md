@@ -1,12 +1,73 @@
 # Infrastructure — Axobotl
 
+## Environment Overview
+
+```
+┌──────────────────────── Production (Docker Compose) ─────────────────────────┐
+│                                                                               │
+│  ┌─────────────────────────┐    ┌─────────────────────────┐                 │
+│  │   axobotl-bot:latest    │    │ axobotl-dashboard:latest │                 │
+│  │   (ghcr.io)             │    │ (ghcr.io)                │                 │
+│  │   Node 20 Alpine        │    │ Node 20 Alpine           │                 │
+│  │   target: bot           │    │ target: dashboard        │                 │
+│  │   dist/bot/index.js     │    │ dist/dashboard/index.js  │                 │
+│  │                         │    │ port: 3000               │<── HTTP :3000   │
+│  └────────────┬────────────┘    └─────────────┬────────────┘                 │
+│               │                               │                              │
+│               └───────────────┬───────────────┘                              │
+│                               │ depends_on: postgres (healthy)               │
+│                               ▼                                              │
+│                ┌──────────────────────────────┐                              │
+│                │     postgres:16-alpine        │                              │
+│                │     port: 5432               │                              │
+│                │     volume: postgres_data     │                              │
+│                └──────────────────────────────┘                              │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────── Development ─────────────────────────┐
+│                                                              │
+│  pnpm dev:bot        → tsx watch src/bot/index.ts            │
+│  pnpm dev:dashboard  → tsx watch src/dashboard/index.ts      │
+│  docker compose up postgres -d  → PostgreSQL on :5432        │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+## CI/CD Pipeline (GitHub Actions)
+
+```
+Push to main/develop  ──► test job
+Push tag v*           ──► test job ──► docker job
+PR to main            ──► test job
+
+test job:
+  ├── PostgreSQL 16 service (axobotl_test DB)
+  ├── pnpm install --frozen-lockfile
+  ├── pnpm typecheck
+  ├── pnpm test:unit       (Vitest, port 5432)
+  └── pnpm test:e2e        (Playwright Chromium, port 4000)
+
+docker job (main push or v* tag, after test):
+  ├── Login to ghcr.io
+  ├── Build + push axobotl-bot
+  │     :dev       (every push to main)
+  │     :latest    (v* tags only)
+  │     :vX.Y.Z    (semver tags)
+  └── Build + push axobotl-dashboard
+        :dev       (every push to main)
+        :latest    (v* tags only)
+        :vX.Y.Z    (semver tags)
+```
+
 ## Environments
 
 | Environment | Bot | Dashboard | Database |
 |---|---|---|---|
-| Development | `pnpm dev:bot` (tsx watch) | `pnpm dev:dashboard` (tsx watch) | Local PostgreSQL |
+| Development | `pnpm dev:bot` (tsx watch) | `pnpm dev:dashboard` (tsx watch) | Local PostgreSQL :5432 |
 | Docker (local) | `docker compose up bot` | `docker compose up dashboard` | `docker compose up postgres` |
-| Production | Docker image: `axobotl-bot:latest` | Docker image: `axobotl-dashboard:latest` | PostgreSQL 16 container |
+| Production | `axobotl-bot:latest` | `axobotl-dashboard:latest` | PostgreSQL 16 container |
+| CI | not started | port 4000 (E2E) | postgres service (axobotl_test) |
 
 ## Ports
 
@@ -21,16 +82,7 @@ Both images are built from the same multi-stage `Dockerfile`:
 - **Stage `bot`** — Node 20 Alpine, runs `dist/bot/index.js`
 - **Stage `dashboard`** — Node 20 Alpine, runs `dist/dashboard/index.js`, exposes port 3000
 
-## GitHub Actions CI/CD
-
-| Trigger | Jobs |
-|---|---|
-| Push to `main` or `develop`, PRs to `main` | Type-check, unit tests, E2E tests |
-| Push to `main` | Build + push Docker images to Docker Hub |
-
-Required GitHub Secrets:
-- `DOCKER_HUB_USER` — Docker Hub username
-- `DOCKER_HUB_TOKEN` — Docker Hub access token
+Registry: `ghcr.io/<owner>/axobotl-bot` and `ghcr.io/<owner>/axobotl-dashboard`
 
 ## Required Environment Variables
 
@@ -40,3 +92,10 @@ See `.env.example` for a full annotated list. Critical variables:
 - `DISCORD_CLIENT_SECRET` — OAuth2 secret
 - `DATABASE_URL` — PostgreSQL connection string
 - `SESSION_SECRET` — Random 32+ byte hex string
+- `DISCORD_CALLBACK_URL` — OAuth2 redirect URI (must match Discord app settings)
+
+## Changelog
+
+| Date | Change |
+|---|---|
+| 2026-03-08 | Updated infrastructure diagram from code scan (docker-compose.yml, ci.yml) |
