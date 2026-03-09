@@ -69,13 +69,34 @@
 
                         <!-- Pagination -->
                         <% if (pagination.total > 1) { %>
+                            <%
+                                const cur = pagination.current;
+                                const last = pagination.total;
+                                const pages = [];
+                                pages.push(1);
+                                for (let i = Math.max(2, cur - 2); i <= Math.min(last - 1, cur + 2); i++) {
+                                    pages.push(i);
+                                }
+                                if (last > 1) pages.push(last);
+                            %>
                             <nav class="mt-3">
                                 <ul class="pagination pagination-sm justify-content-center">
-                                    <% for (let i = 1; i <= pagination.total; i++) { %>
-                                        <li class="page-item <%= i === pagination.current ? 'active' : '' %>">
-                                            <a class="page-link" href="/dashboard/logs?page=<%= i %>"><%= i %></a>
+                                    <li class="page-item <%= cur === 1 ? 'disabled' : '' %>">
+                                        <a class="page-link" href="/dashboard/logs?page=<%= cur - 1 %>" aria-label="Previous">&laquo;</a>
+                                    </li>
+                                    <% let prev = 0; %>
+                                    <% pages.forEach(p => { %>
+                                        <% if (p - prev > 1) { %>
+                                            <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                                        <% } %>
+                                        <li class="page-item <%= p === cur ? 'active' : '' %>">
+                                            <a class="page-link" href="/dashboard/logs?page=<%= p %>"<%= p === cur ? ' aria-current="page"' : '' %>><%= p %></a>
                                         </li>
-                                    <% } %>
+                                        <% prev = p; %>
+                                    <% }) %>
+                                    <li class="page-item <%= cur === last ? 'disabled' : '' %>">
+                                        <a class="page-link" href="/dashboard/logs?page=<%= cur + 1 %>" aria-label="Next">&raquo;</a>
+                                    </li>
                                 </ul>
                             </nav>
                         <% } %>

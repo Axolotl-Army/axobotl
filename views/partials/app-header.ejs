@@ -54,10 +54,7 @@
     <!-- Profile -->
     <% if (typeof user !== 'undefined' && user) { %>
     <button type="button" data-bs-toggle="dropdown" title="<%= user.username %>" class="btn-system bg-transparent d-flex flex-shrink-0 align-items-center justify-content-center" aria-label="Open Profile Dropdown">
-        <img src="<%= user.avatar
-            ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=32`
-            : `https://cdn.discordapp.com/embed/avatars/${parseInt(user.discriminator ?? '0') % 5}.png`
-        %>" class="profile-image profile-image-md rounded-circle" alt="<%= user.username %>">
+        <img src="<%= avatarUrl %>?size=32" class="profile-image profile-image-md rounded-circle" alt="<%= user.username %>">
     </button>
 
     <!-- Profile dropdown -->
@@ -65,10 +62,7 @@
         <div class="notification-header rounded-top mb-2">
             <div class="d-flex flex-row align-items-center mt-1 mb-1 color-white">
                 <span class="status status-success d-inline-block me-2">
-                    <img src="<%= user.avatar
-                        ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`
-                        : `https://cdn.discordapp.com/embed/avatars/${parseInt(user.discriminator ?? '0') % 5}.png`
-                    %>" class="profile-image rounded-circle" alt="<%= user.username %>">
+                    <img src="<%= avatarUrl %>?size=64" class="profile-image rounded-circle" alt="<%= user.username %>">
                 </span>
                 <div class="info-card-text">
                     <div class="fs-lg text-truncate text-truncate-lg"><%= user.username %></div>
