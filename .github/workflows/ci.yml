@@ -112,7 +112,7 @@ jobs:
 
       - name: Extract metadata (bot)
         id: meta-bot
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository_owner }}/axobotl-bot
           tags: |
@@ -125,7 +125,7 @@ jobs:
 
       - name: Extract metadata (dashboard)
         id: meta-dashboard
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository_owner }}/axobotl-dashboard
           tags: |
