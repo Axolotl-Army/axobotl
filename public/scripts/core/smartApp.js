@@ -1147,9 +1147,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Update modal content with current panel title
                     const modalBody = confirmModal.querySelector('.modal-body');
                     //modalBody.textContent = `You are about to delete <strong>${panelTitle}</strong>`;
+                    const escapedTitle = panelTitle.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
                     modalBody.innerHTML = `
                     <div class="alert alert-danger bg-danger border-danger text-white border-opacity-50 bg-opacity-10 mb-0">
-                        You are about to delete <span class="fw-700">${panelTitle}.</span>
+                        You are about to delete <span class="fw-700">${escapedTitle}.</span>
                         Are you sure you want to delete this panel?
                     </div>`;
 

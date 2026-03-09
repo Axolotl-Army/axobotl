@@ -31,7 +31,7 @@ class Navigation {
         if (typeof str !== 'string') return '';
         const temp = document.createElement('div');
         temp.textContent = str;
-        return temp.innerHTML.replace(/(on\w+)=["'][^"']*["']/gi, '');
+        return temp.innerHTML;
     }
 
     static isValidUrl(url) {
