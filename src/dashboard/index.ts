@@ -62,6 +62,17 @@ passport.deserializeUser((user, done) => done(null, user as Express.User));
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Set avatar URL on res.locals so templates don't repeat the CDN logic
+app.use((req, res, next) => {
+  if (req.user) {
+    const u = req.user;
+    res.locals.avatarUrl = u.avatar
+      ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png`
+      : `https://cdn.discordapp.com/embed/avatars/${parseInt(u.discriminator ?? '0') % 5}.png`;
+  }
+  next();
+});
+
 // ── Routes ────────────────────────────────────────────────────────────
 app.use('/auth', authRouter);
 app.use('/', mainRouter);

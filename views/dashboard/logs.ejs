@@ -1,67 +1,123 @@
-<%- include('../partials/head', { title: 'Logs' }) %>
-<%- include('../partials/navbar') %>
+<%- include('../partials/app-html') %>
 
-<div class="container-fluid">
-  <div class="row">
-    <%- include('../partials/sidebar', { activePage: 'logs' }) %>
+<head>
+    <%- include('../partials/app-meta-title') %>
+    <%- include('../partials/app-head-css') %>
+</head>
 
-    <main class="col-md-10 ms-sm-auto px-md-4 py-4">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-bold mb-0">Command Logs</h4>
-        <span class="text-muted small"><%= pagination.totalEntries.toLocaleString() %> total entries</span>
-      </div>
+<body>
 
-      <div class="card bg-dark border-secondary">
-        <div class="card-body p-0">
-          <% if (logs.length === 0) { %>
-            <p class="text-muted text-center py-4 mb-0">No logs yet.</p>
-          <% } else { %>
-            <div class="table-responsive">
-              <table class="table table-dark table-hover mb-0">
-                <thead>
-                  <tr class="text-muted small">
-                    <th>Command</th>
-                    <th>User</th>
-                    <th>Guild ID</th>
-                    <th>Status</th>
-                    <th>Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <% logs.forEach(log => { %>
-                    <tr>
-                      <td><code>/<%= log.command %></code></td>
-                      <td class="small"><%= log.username %></td>
-                      <td class="text-muted small"><%= log.guildId %></td>
-                      <td>
-                        <span class="badge bg-<%= log.successful ? 'success' : 'danger' %>">
-                          <%= log.successful ? 'OK' : 'Error' %>
-                        </span>
-                      </td>
-                      <td class="text-muted small"><%= new Date(log.createdAt).toLocaleString() %></td>
-                    </tr>
-                  <% }) %>
-                </tbody>
-              </table>
+    <div class="app-wrap">
+
+        <%- include('../partials/app-header') %>
+
+        <%- include('../partials/app-sidebar') %>
+
+        <main class="app-body">
+            <div class="app-content">
+
+                <div class="content-wrapper">
+
+                    <%- include('../partials/app-pagetitle') %>
+
+                    <div class="main-content">
+
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span></span>
+                            <span class="text-muted small"><%= pagination.totalEntries.toLocaleString() %> total entries</span>
+                        </div>
+
+                        <div class="card shadow-0 mb-g">
+                            <div class="card-header">
+                                <div class="card-title">Command Logs</div>
+                            </div>
+                            <div class="card-body p-0">
+                                <% if (logs.length === 0) { %>
+                                    <p class="text-muted text-center py-4 mb-0">No logs yet.</p>
+                                <% } else { %>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Command</th>
+                                                    <th>User</th>
+                                                    <th>Guild ID</th>
+                                                    <th>Status</th>
+                                                    <th>Time</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <% logs.forEach(log => { %>
+                                                    <tr>
+                                                        <td><code>/<%= log.command %></code></td>
+                                                        <td class="small"><%= log.username %></td>
+                                                        <td class="text-muted small"><%= log.guildId %></td>
+                                                        <td>
+                                                            <span class="badge bg-<%= log.successful ? 'success' : 'danger' %>">
+                                                                <%= log.successful ? 'OK' : 'Error' %>
+                                                            </span>
+                                                        </td>
+                                                        <td class="text-muted small"><%= new Date(log.createdAt).toLocaleString() %></td>
+                                                    </tr>
+                                                <% }) %>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+
+                        <!-- Pagination -->
+                        <% if (pagination.total > 1) { %>
+                            <%
+                                const cur = pagination.current;
+                                const last = pagination.total;
+                                const pages = [];
+                                pages.push(1);
+                                for (let i = Math.max(2, cur - 2); i <= Math.min(last - 1, cur + 2); i++) {
+                                    pages.push(i);
+                                }
+                                if (last > 1) pages.push(last);
+                            %>
+                            <nav class="mt-3">
+                                <ul class="pagination pagination-sm justify-content-center">
+                                    <li class="page-item <%= cur === 1 ? 'disabled' : '' %>">
+                                        <a class="page-link" href="/dashboard/logs?page=<%= cur - 1 %>" aria-label="Previous">&laquo;</a>
+                                    </li>
+                                    <% let prev = 0; %>
+                                    <% pages.forEach(p => { %>
+                                        <% if (p - prev > 1) { %>
+                                            <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                                        <% } %>
+                                        <li class="page-item <%= p === cur ? 'active' : '' %>">
+                                            <a class="page-link" href="/dashboard/logs?page=<%= p %>"<%= p === cur ? ' aria-current="page"' : '' %>><%= p %></a>
+                                        </li>
+                                        <% prev = p; %>
+                                    <% }) %>
+                                    <li class="page-item <%= cur === last ? 'disabled' : '' %>">
+                                        <a class="page-link" href="/dashboard/logs?page=<%= cur + 1 %>" aria-label="Next">&raquo;</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        <% } %>
+
+                    </div>
+                </div>
+
             </div>
-          <% } %>
-        </div>
-      </div>
 
-      <!-- Pagination -->
-      <% if (pagination.total > 1) { %>
-        <nav class="mt-3">
-          <ul class="pagination pagination-sm justify-content-center">
-            <% for (let i = 1; i <= pagination.total; i++) { %>
-              <li class="page-item <%= i === pagination.current ? 'active' : '' %>">
-                <a class="page-link" href="/dashboard/logs?page=<%= i %>"><%= i %></a>
-              </li>
-            <% } %>
-          </ul>
-        </nav>
-      <% } %>
-    </main>
-  </div>
-</div>
+            <%- include('../partials/app-footer') %>
 
-<%- include('../partials/scripts') %>
+        </main>
+
+        <%- include('../partials/app-drawer') %>
+
+        <%- include('../partials/app-settings') %>
+
+    </div>
+
+    <%- include('../partials/app-scripts') %>
+
+</body>
+
+</html>
