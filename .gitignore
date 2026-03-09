@@ -31,3 +31,6 @@ logs/
 
 # Claude local overrides
 CLAUDE.local.md
+
+# SmartAdmin source/reference (assets are copied to public/)
+SmartAdmin/

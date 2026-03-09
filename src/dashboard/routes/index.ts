@@ -46,7 +46,8 @@ router.get('/dashboard', webLimiter, requireAuth, async (req, res) => {
 
   res.render('dashboard/index', {
     title: 'Overview',
-    page: 'home',
+    pageTitle: 'Overview',
+    pageSubTitle1: 'Dashboard',
     user: req.user,
     stats: { guildCount, totalCommands },
     recentLogs,
@@ -64,7 +65,8 @@ router.get('/dashboard/commands', webLimiter, requireAuth, async (req, res) => {
 
   res.render('dashboard/commands', {
     title: 'Commands',
-    page: 'commands',
+    pageTitle: 'Commands',
+    pageSubTitle1: 'Dashboard',
     user: req.user,
     commandStats,
   });
@@ -82,7 +84,8 @@ router.get('/dashboard/logs', webLimiter, requireAuth, async (req, res) => {
 
   res.render('dashboard/logs', {
     title: 'Logs',
-    page: 'logs',
+    pageTitle: 'Logs',
+    pageSubTitle1: 'Dashboard',
     user: req.user,
     logs,
     pagination: {

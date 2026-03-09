@@ -1,0 +1,14 @@
+<% if (typeof pageTitle !== 'undefined') { %>
+  <h1 class="subheader-title mb-2"><%= pageTitle %></h1>
+<% } %>
+
+<% if (typeof pageTitle !== 'undefined') { %>
+  <nav class="app-breadcrumb" aria-label="breadcrumb">
+    <ol class="breadcrumb ms-0 text-muted mb-0">
+      <% if (typeof pageSubTitle1 !== 'undefined') { %>
+        <li class="breadcrumb-item"><%= pageSubTitle1 %></li>
+      <% } %>
+      <li class="breadcrumb-item active" aria-current="page"><%= pageTitle %></li>
+    </ol>
+  </nav>
+<% } %>
