@@ -137,7 +137,7 @@ jobs:
             type=sha,prefix=sha-
 
       - name: Build & push bot
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           target: bot
@@ -148,7 +148,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build & push dashboard
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           target: dashboard
