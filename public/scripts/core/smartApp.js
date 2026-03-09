@@ -1144,15 +1144,18 @@ document.addEventListener('DOMContentLoaded', function () {
                         confirmModal = document.getElementById('panelDeleteModal');
                     }
 
-                    // Update modal content with current panel title
+                    // Update modal content with current panel title (DOM API — no innerHTML)
                     const modalBody = confirmModal.querySelector('.modal-body');
-                    //modalBody.textContent = `You are about to delete <strong>${panelTitle}</strong>`;
-                    const escapedTitle = panelTitle.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-                    modalBody.innerHTML = `
-                    <div class="alert alert-danger bg-danger border-danger text-white border-opacity-50 bg-opacity-10 mb-0">
-                        You are about to delete <span class="fw-700">${escapedTitle}.</span>
-                        Are you sure you want to delete this panel?
-                    </div>`;
+                    modalBody.textContent = '';
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-danger bg-danger border-danger text-white border-opacity-50 bg-opacity-10 mb-0';
+                    alertDiv.appendChild(document.createTextNode('You are about to delete '));
+                    const titleSpan = document.createElement('span');
+                    titleSpan.className = 'fw-700';
+                    titleSpan.textContent = panelTitle + '.';
+                    alertDiv.appendChild(titleSpan);
+                    alertDiv.appendChild(document.createTextNode(' Are you sure you want to delete this panel?'));
+                    modalBody.appendChild(alertDiv);
 
                     // Initialize Bootstrap modal
                     const modal = new bootstrap.Modal(confirmModal);
