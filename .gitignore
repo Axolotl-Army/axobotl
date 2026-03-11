@@ -6,6 +6,7 @@
 # Build output
 dist/
 build/
+src/dashboard/.next/
 
 # Dependencies
 node_modules/
@@ -28,6 +29,9 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# SmartAdmin (local reference only)
+SmartAdmin/
 
 # Claude local overrides
 CLAUDE.local.md
