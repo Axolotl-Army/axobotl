@@ -89,7 +89,7 @@ export const LayoutProvider = ({ children }: ChildrenType) => {
 
   const reset = useCallback(() => {
     const htmlRoot = document.documentElement
-    const themeStyleEl = document.getElementById('theme-style') as HTMLLinkElement
+    const themeStyleEl = document.getElementById('app-theme') as HTMLLinkElement
     const classesToRemove = [
       'set-header-fixed',
       'set-nav-full',
@@ -155,7 +155,18 @@ export const LayoutProvider = ({ children }: ChildrenType) => {
         if (className) document.documentElement.classList.toggle(className, val)
       }
     })
-  }, [settings])
+  }, [
+    settings.theme,
+    settings.selectedTheme,
+    settings.headerFixed,
+    settings.navFull,
+    settings.navFixed,
+    settings.navCollapsed,
+    settings.navMinified,
+    settings.darkNavigation,
+    settings.colorblindMode,
+    settings.highContrastMode,
+  ])
 
   const contextValue = useMemo(
     () => ({

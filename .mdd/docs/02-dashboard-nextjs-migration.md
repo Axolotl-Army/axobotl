@@ -14,6 +14,8 @@ source_files:
   - src/dashboard/app/api/auth/[...nextauth]/route.ts
   - src/dashboard/app/api/v1/stats/route.ts
   - src/dashboard/app/api/v1/guilds/route.ts
+  - src/dashboard/app/api/v1/commands/route.ts
+  - src/dashboard/app/api/v1/logs/route.ts
   - src/dashboard/app/not-found.tsx
   - src/dashboard/app/error.tsx
   - src/dashboard/components/PageBreadcrumb.tsx
@@ -53,6 +55,8 @@ routes:
   - POST /api/auth/[...nextauth] (NextAuth endpoints)
   - GET /api/v1/stats (JSON stats)
   - GET /api/v1/guilds (JSON guilds)
+  - GET /api/v1/commands (JSON command stats grouped by command)
+  - GET /api/v1/logs (JSON logs, paginated with ?page=N&limit=N)
 models:
   - Guild (existing, shared)
   - CommandLog (existing, shared)
@@ -101,17 +105,18 @@ No schema changes. Existing models are reused:
 - `GET/POST /api/auth/[...nextauth]` -- Discord OAuth2 flow, session management, CSRF
 
 ### REST API (v1)
-- `GET /api/v1/stats` -- Returns `{ guildCount, totalCommands }`. Requires auth.
-- `GET /api/v1/guilds` -- Returns guild list ordered by name. Requires auth.
+- `GET /api/v1/stats` -- Returns `{ guildCount, totalCommands }`. Requires owner auth.
+- `GET /api/v1/guilds` -- Returns guild list ordered by name. Requires owner auth.
+- `GET /api/v1/commands` -- Returns command usage stats grouped by command. Requires owner auth.
+- `GET /api/v1/logs` -- Returns recent logs. Supports `?page=N&limit=N` for pagination. Requires owner auth.
 
 ## Business Rules
 
 1. **Authentication**: All `/dashboard/*` pages require a valid NextAuth session. Unauthenticated users redirect to `/auth/login`.
-2. **Authorization**: `requireOwner` middleware reserved for future admin-only routes.
-3. **Rate limiting**: API routes limited to 60 req/min; page routes limited to 100 req/15min.
-4. **Theme persistence**: Layout settings (theme, nav state) stored in localStorage via LayoutContext.
-5. **Pagination**: Logs page shows 20 entries per page with URL query param `?page=N`.
-6. **Data access**: All DB queries use the shared Sequelize instance from `src/shared/database.ts`.
+2. **Authorization**: Only the bot owner (matching `BOT_OWNER_ID` env var) can sign in. The `signIn` callback rejects non-owner Discord accounts. API routes use `requireOwner()` from `lib/auth.ts` to verify both session and owner identity.
+3. **Theme persistence**: Layout settings (theme, nav state) stored in localStorage via LayoutContext.
+4. **Pagination**: Logs page shows 20 entries per page with URL query param `?page=N`.
+5. **Data access**: All DB queries use the shared Sequelize instance from `src/shared/database.ts`.
 
 ## Dependencies
 

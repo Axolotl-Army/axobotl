@@ -1,4 +1,6 @@
 import type { NextAuthOptions } from 'next-auth'
+import { getServerSession } from 'next-auth'
+import { NextResponse } from 'next/server'
 import DiscordProvider from 'next-auth/providers/discord'
 
 export const authOptions: NextAuthOptions = {
@@ -18,6 +20,12 @@ export const authOptions: NextAuthOptions = {
     signIn: '/auth/login',
   },
   callbacks: {
+    async signIn({ profile }) {
+      const ownerId = process.env['BOT_OWNER_ID']
+      if (!ownerId) return false
+      const discordId = (profile as Record<string, unknown>)?.id as string | undefined
+      return discordId === ownerId
+    },
     async jwt({ token, account, profile }) {
       if (account && profile) {
         token.discordId = (profile as Record<string, unknown>).id as string
@@ -32,4 +40,18 @@ export const authOptions: NextAuthOptions = {
       return session
     },
   },
+}
+
+/** Checks session + owner authorization for API routes. Returns error response or null if authorized. */
+export async function requireOwner(): Promise<NextResponse | null> {
+  const session = await getServerSession(authOptions)
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  const discordId = (session.user as Record<string, unknown>)?.discordId as string | undefined
+  const ownerId = process.env['BOT_OWNER_ID']
+  if (!ownerId || discordId !== ownerId) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+  return null
 }

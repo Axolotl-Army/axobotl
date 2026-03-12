@@ -1,16 +1,13 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { requireOwner } from '@/lib/auth'
 import { getSequelize } from '@/lib/db'
 import { QueryTypes } from 'sequelize'
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const denied = await requireOwner()
+  if (denied) return denied
 
   const sequelize = await getSequelize()
   const commandStats = await sequelize.query<{
