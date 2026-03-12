@@ -19,7 +19,7 @@ export default defineConfig({
       command: 'pnpm dev:test:website',
       port: 4000,
       reuseExistingServer: !process.env.CI,
-      timeout: 30_000,
+      timeout: 60_000,
     },
   ],
 });
