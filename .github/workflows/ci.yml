@@ -58,6 +58,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install dashboard dependencies
+        run: cd src/dashboard && pnpm install --frozen-lockfile
+
       - name: Type-check
         run: pnpm typecheck
 
