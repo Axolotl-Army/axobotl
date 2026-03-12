@@ -8,7 +8,7 @@
     "dev:bot": "tsx watch src/bot/index.ts",
     "dev:dashboard": "cd src/dashboard && pnpm exec next dev -p 3000",
     "dev:test:website": "cd src/dashboard && pnpm exec next dev -p 4000",
-    "build": "tsc && cd src/dashboard && next build",
+    "build": "tsc && cd src/dashboard && pnpm exec next build",
     "start": "concurrently \"pnpm start:bot\" \"pnpm start:dashboard\"",
     "start:bot": "node dist/bot/index.js",
     "start:dashboard": "cd src/dashboard && pnpm exec next start -p 3000",
