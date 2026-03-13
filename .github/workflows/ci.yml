@@ -58,8 +58,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Type-check
+      - name: Install dashboard dependencies
+        run: cd src/dashboard && pnpm install --frozen-lockfile
+
+      - name: Type-check (bot + shared)
         run: pnpm typecheck
+
+      - name: Type-check (dashboard)
+        run: pnpm typecheck:dashboard
 
       - name: Unit tests
         run: pnpm test:unit
@@ -80,6 +86,7 @@ jobs:
           DISCORD_CLIENT_ID: placeholder
           DISCORD_CLIENT_SECRET: placeholder
           DISCORD_CALLBACK_URL: http://localhost:4000/auth/callback
+          NEXTAUTH_URL: http://localhost:4000
           PORT: 4000
 
       - uses: actions/upload-artifact@v7
@@ -102,7 +109,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       - uses: docker/login-action@v4
         with:
@@ -112,10 +119,12 @@ jobs:
 
       - name: Extract metadata (bot)
         id: meta-bot
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository_owner }}/axobotl-bot
           tags: |
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=dev
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -123,17 +132,19 @@ jobs:
 
       - name: Extract metadata (dashboard)
         id: meta-dashboard
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository_owner }}/axobotl-dashboard
           tags: |
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=dev
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=sha-
 
       - name: Build & push bot
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           target: bot
@@ -144,7 +155,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build & push dashboard
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           target: dashboard

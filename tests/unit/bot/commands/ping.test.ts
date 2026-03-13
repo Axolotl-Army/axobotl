@@ -10,7 +10,7 @@ describe('/ping command', () => {
 
   it('replies and edits with latency info', async () => {
     const mockReply = vi.fn().mockResolvedValue({
-      createdTimestamp: 1000,
+      resource: { message: { createdTimestamp: 1000 } },
     });
     const mockEditReply = vi.fn().mockResolvedValue(undefined);
 
@@ -23,7 +23,7 @@ describe('/ping command', () => {
 
     await command.execute(interaction as never);
 
-    expect(mockReply).toHaveBeenCalledWith({ content: 'Pinging...', fetchReply: true });
+    expect(mockReply).toHaveBeenCalledWith({ content: 'Pinging...', withResponse: true });
     expect(mockEditReply).toHaveBeenCalledWith(
       expect.stringContaining('50ms'),
     );

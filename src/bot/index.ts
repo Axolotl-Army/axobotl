@@ -7,11 +7,16 @@ import type { SlashCommand } from './types';
 // Commands
 import { command as pingCommand } from './commands/ping';
 import { command as helpCommand } from './commands/help';
+import { command as rankCommand } from './commands/rank';
+import { command as leaderboardCommand } from './commands/leaderboard';
+import { command as xpCommand } from './commands/xp';
+import { command as levelconfigCommand } from './commands/levelconfig';
 
 // Events
 import readyEvent from './events/ready';
 import createInteractionEvent from './events/interactionCreate';
 import guildCreateEvent from './events/guildCreate';
+import messageCreateEvent from './events/messageCreate';
 
 // ── Environment validation ──────────────────────────────────────────
 const token = process.env['DISCORD_TOKEN'];
@@ -29,6 +34,10 @@ const client = new Client({
 const commands = new Map<string, SlashCommand>([
   ['ping', pingCommand],
   ['help', helpCommand],
+  ['rank', rankCommand],
+  ['leaderboard', leaderboardCommand],
+  ['xp', xpCommand],
+  ['levelconfig', levelconfigCommand],
 ]);
 
 // ── Event registration ──────────────────────────────────────────────
@@ -36,6 +45,7 @@ const events = [
   readyEvent(commands),
   createInteractionEvent(commands),
   guildCreateEvent,
+  messageCreateEvent,
 ];
 
 for (const event of events) {
@@ -50,7 +60,7 @@ for (const event of events) {
 async function start(): Promise<void> {
   console.log('[Bot] Connecting to database...');
   await sequelize.authenticate();
-  await sequelize.sync({ alter: process.env['NODE_ENV'] === 'development' });
+  await sequelize.sync({ alter: true });
   console.log('[Bot] Database connected');
 
   console.log('[Bot] Logging in to Discord...');

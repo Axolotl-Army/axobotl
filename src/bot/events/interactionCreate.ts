@@ -1,4 +1,4 @@
-import { Events, Interaction } from 'discord.js';
+import { Events, Interaction, MessageFlags } from 'discord.js';
 import type { BotEvent, SlashCommand } from '../types';
 import { CommandLog } from '../../shared/models';
 
@@ -20,11 +20,11 @@ function createEvent(commands: Map<string, SlashCommand>): BotEvent {
       } catch (error) {
         successful = false;
         console.error(`[Bot] Error executing /${interaction.commandName}:`, error);
-        const msg = { content: 'An error occurred while running this command.', ephemeral: true };
+        const content = 'An error occurred while running this command.';
         if (interaction.replied || interaction.deferred) {
-          await interaction.followUp(msg);
+          await interaction.followUp({ content, flags: MessageFlags.Ephemeral });
         } else {
-          await interaction.reply(msg);
+          await interaction.reply({ content, flags: MessageFlags.Ephemeral });
         }
       }
 

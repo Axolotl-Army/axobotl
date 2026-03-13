@@ -1,18 +1,25 @@
 # Stage 1: Builder
-FROM node:25-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 
 RUN npm install -g pnpm --ignore-scripts
 
+# Install root dependencies
 COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --frozen-lockfile
 
+# Install dashboard dependencies
+COPY src/dashboard/package.json src/dashboard/pnpm-lock.yaml* ./src/dashboard/
+RUN cd src/dashboard && pnpm install --frozen-lockfile
+
+# Copy source and build
 COPY tsconfig.json ./
 COPY src/ ./src/
-RUN pnpm build
+RUN pnpm exec tsc
+RUN cd src/dashboard && pnpm exec next build
 
 # Stage 2: Bot runner
-FROM node:25-alpine AS bot
+FROM node:22-alpine AS bot
 WORKDIR /app
 ENV NODE_ENV=production
 
@@ -27,21 +34,20 @@ USER appuser
 CMD ["node", "dist/bot/index.js"]
 
 # Stage 3: Dashboard runner
-FROM node:25-alpine AS dashboard
+FROM node:22-alpine AS dashboard
 WORKDIR /app
 ENV NODE_ENV=production
 
 RUN addgroup --system --gid 1001 appgroup \
   && adduser --system --uid 1001 --ingroup appgroup appuser
 
-COPY --from=builder --chown=appuser:appgroup /app/dist ./dist
-COPY --from=builder --chown=appuser:appgroup /app/node_modules ./node_modules
-COPY --from=builder --chown=appuser:appgroup /app/package.json ./
-COPY --chown=appuser:appgroup views/ ./views/
-COPY --chown=appuser:appgroup public/ ./public/
+# Next.js standalone output includes a minimal server + node_modules
+COPY --from=builder --chown=appuser:appgroup /app/src/dashboard/.next/standalone ./
+COPY --from=builder --chown=appuser:appgroup /app/src/dashboard/.next/static ./.next/static
+COPY --from=builder --chown=appuser:appgroup /app/src/dashboard/public ./public
 
 USER appuser
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-  CMD wget -qO- http://localhost:3000/health || exit 1
-CMD ["node", "dist/dashboard/index.js"]
+  CMD wget -qO- http://localhost:3000/api/health || exit 1
+CMD ["node", "server.js"]
