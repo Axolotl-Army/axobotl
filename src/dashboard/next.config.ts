@@ -10,10 +10,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
-  sassOptions: {
-    silenceDeprecations: ['legacy-js-api'],
-  },
-  serverExternalPackages: ['sequelize', 'pg', 'pg-hstore'],
+serverExternalPackages: ['sequelize', 'pg', 'pg-hstore'],
   async redirects() {
     return [
       {
