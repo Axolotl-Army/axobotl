@@ -5,8 +5,8 @@ import AuthSessionProvider from '@/components/AuthSessionProvider'
 import { appTitle } from '@/helpers'
 
 import 'node-waves/dist/waves.css'
-import '@/assets/webfonts/smartadmin/scss/sa-icons.scss'
-import '@/assets/sass/smartapp.scss'
+import '@/public/css/sa-icons.css'
+import '@/public/css/smartapp.css'
 
 export const metadata: Metadata = {
   title: {
