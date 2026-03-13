@@ -1,16 +1,17 @@
-version: '3.8'
+name: axobotl
 
 services:
   postgres:
     image: postgres:16-alpine
+    container_name: db
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-axobotl}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    expose:
+      - 5432
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
       interval: 10s
@@ -20,12 +21,9 @@ services:
 
   bot:
     image: ghcr.io/${GHCR_OWNER:-axolotl-army}/axobotl-bot:${IMAGE_TAG:-latest}
-    build:
-      context: .
-      target: bot
     env_file: .env
+    container_name: bot
     environment:
-      - NODE_ENV=production
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-axobotl}
     depends_on:
       postgres:
@@ -34,12 +32,9 @@ services:
 
   dashboard:
     image: ghcr.io/${GHCR_OWNER:-axolotl-army}/axobotl-dashboard:${IMAGE_TAG:-latest}
-    build:
-      context: .
-      target: dashboard
     env_file: .env
+    container_name: dashboard
     environment:
-      - NODE_ENV=production
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-axobotl}
       - PORT=3000
     ports:
