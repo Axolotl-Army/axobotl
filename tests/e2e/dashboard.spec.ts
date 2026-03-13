@@ -40,4 +40,14 @@ test.describe('Dashboard -- unauthenticated', () => {
     const response = await page.request.get('/api/v1/guilds');
     expect(response.status()).toBe(401);
   });
+
+  test('API logs endpoint requires authentication', async ({ page }) => {
+    const response = await page.request.get('/api/v1/logs');
+    expect(response.status()).toBe(401);
+  });
+
+  test('API commands endpoint requires authentication', async ({ page }) => {
+    const response = await page.request.get('/api/v1/commands');
+    expect(response.status()).toBe(401);
+  });
 });
