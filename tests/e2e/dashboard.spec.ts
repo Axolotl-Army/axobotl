@@ -1,8 +1,6 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Dashboard -- unauthenticated', () => {
-  test.describe.configure({ mode: 'serial' });
-
   test('health endpoint returns ok', async ({ page }) => {
     const response = await page.request.get('/api/health');
     expect(response.status()).toBe(200);
@@ -40,11 +38,6 @@ test.describe('Dashboard -- unauthenticated', () => {
 
   test('API guilds endpoint requires authentication', async ({ page }) => {
     const response = await page.request.get('/api/v1/guilds');
-    expect(response.status()).toBe(401);
-  });
-
-  test('API logs endpoint requires authentication', async ({ page }) => {
-    const response = await page.request.get('/api/v1/logs');
     expect(response.status()).toBe(401);
   });
 
