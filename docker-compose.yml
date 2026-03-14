@@ -21,6 +21,9 @@ services:
 
   bot:
     image: ghcr.io/${GHCR_OWNER:-axolotl-army}/axobotl-bot:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      target: bot
     env_file: .env
     container_name: bot
     environment:
@@ -32,6 +35,9 @@ services:
 
   dashboard:
     image: ghcr.io/${GHCR_OWNER:-axolotl-army}/axobotl-dashboard:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      target: dashboard
     env_file: .env
     container_name: dashboard
     environment:

@@ -13,6 +13,7 @@ node_modules/
 package-lock.json
 
 # Testing
+docker-compose.test.yml
 coverage/
 test-results/
 playwright-report/

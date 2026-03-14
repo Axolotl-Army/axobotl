@@ -25,7 +25,8 @@
     "test:e2e:headed": "pnpm test:kill-ports && playwright test --headed",
     "test:e2e:chromium": "pnpm test:kill-ports && playwright test --project=chromium",
     "test:e2e:report": "playwright show-report",
-    "test:kill-ports": "lsof -ti:4000,4010,4020 | xargs kill -9 2>/dev/null || true"
+    "test:kill-ports": "lsof -ti:4000,4010,4020 | xargs kill -9 2>/dev/null || true",
+    "test:docker": "./scripts/test-docker.sh"
   },
   "dependencies": {
     "concurrently": "^9.1.0",
