@@ -18,6 +18,10 @@ COPY src/ ./src/
 RUN pnpm exec tsc
 RUN cd src/dashboard && pnpm exec next build
 
+# Sequelize dynamically requires pg at runtime, but Next.js standalone
+# cannot trace dynamic requires. Build a clean flat install to merge later.
+RUN mkdir /pg-deps && cd /pg-deps && npm init -y --silent && npm install --omit=dev pg pg-hstore 2>/dev/null
+
 # Stage 2: Bot runner
 FROM node:22-alpine AS bot
 WORKDIR /app
@@ -45,6 +49,9 @@ RUN addgroup --system --gid 1001 appgroup \
 COPY --from=builder --chown=appuser:appgroup /app/src/dashboard/.next/standalone ./
 COPY --from=builder --chown=appuser:appgroup /app/src/dashboard/.next/static ./.next/static
 COPY --from=builder --chown=appuser:appgroup /app/src/dashboard/public ./public
+
+# Merge pg + pg-hstore into node_modules (not traced by Next.js standalone)
+COPY --from=builder --chown=appuser:appgroup /pg-deps/node_modules ./node_modules
 
 USER appuser
 EXPOSE 3000
