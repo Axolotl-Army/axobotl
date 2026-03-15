@@ -1,6 +1,7 @@
 import { Events, Interaction, MessageFlags } from 'discord.js';
 import type { BotEvent, SlashCommand } from '../types';
 import { CommandLog } from '../../shared/models';
+import { pluginCache, getPluginForCommand } from '../plugins';
 
 function createEvent(commands: Map<string, SlashCommand>): BotEvent {
   return {
@@ -12,6 +13,19 @@ function createEvent(commands: Map<string, SlashCommand>): BotEvent {
       if (!command) {
         console.error(`[Bot] No command matching /${interaction.commandName}`);
         return;
+      }
+
+      // Check if this command belongs to a plugin and if it's enabled
+      const plugin = getPluginForCommand(interaction.commandName);
+      if (plugin && interaction.guildId) {
+        const enabled = await pluginCache.isEnabled(interaction.guildId, plugin.id);
+        if (!enabled) {
+          await interaction.reply({
+            content: 'This feature is not enabled in this server.',
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
       }
 
       let successful = true;

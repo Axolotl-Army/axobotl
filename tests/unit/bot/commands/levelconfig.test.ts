@@ -1,13 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { command } from '../../../../src/bot/commands/levelconfig';
 
-vi.mock('../../../../src/shared/models/Guild', () => ({
-  Guild: {
-    upsert: vi.fn().mockResolvedValue([{}, true]),
+const { mockUpdate } = vi.hoisted(() => ({
+  mockUpdate: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('../../../../src/shared/models/GuildPlugin', () => ({
+  GuildPlugin: {
+    findOrCreate: vi.fn().mockResolvedValue([
+      { config: {}, update: mockUpdate },
+      false,
+    ]),
   },
 }));
 
-import { Guild } from '../../../../src/shared/models/Guild';
+import { command } from '../../../../src/bot/commands/levelconfig';
+import { GuildPlugin } from '../../../../src/shared/models/GuildPlugin';
 
 // MessageFlags.IsComponentsV2 (32768) | MessageFlags.Ephemeral (64) = 32832
 const FLAGS_COMPONENTS_V2_EPHEMERAL = 32832;
@@ -45,22 +52,27 @@ describe('/levelconfig command', () => {
   });
 
   describe('execute - setmessage', () => {
-    it('upserts with the trimmed custom template', async () => {
+    it('updates plugin config with the trimmed custom template', async () => {
       const interaction = createInteraction('GG {user}! Level {level}!');
       await command.execute(interaction as never);
 
-      expect(Guild.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'g1', levelUpMessage: 'GG {user}! Level {level}!' }),
+      expect(GuildPlugin.findOrCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { guildId: 'g1', pluginId: 'leveling' },
+        }),
       );
+      expect(mockUpdate).toHaveBeenCalledWith({
+        config: { levelUpMessage: 'GG {user}! Level {level}!' },
+      });
     });
 
-    it('trims whitespace from the template before upserting', async () => {
+    it('trims whitespace from the template before saving', async () => {
       const interaction = createInteraction('  GG {user}!  ');
       await command.execute(interaction as never);
 
-      expect(Guild.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({ levelUpMessage: 'GG {user}!' }),
-      );
+      expect(mockUpdate).toHaveBeenCalledWith({
+        config: { levelUpMessage: 'GG {user}!' },
+      });
     });
 
     it('sends IsComponentsV2 | Ephemeral flags', async () => {
@@ -108,7 +120,6 @@ describe('/levelconfig command', () => {
         .filter((c) => c.type === 10)
         .map((c) => c.content)
         .join('\n');
-      // formatLevelUpMessage renders {user} → <@111> and {level} → 5
       expect(allContent).toContain('Preview');
       expect(allContent).toContain('GG <@111>! Level 5!');
     });
@@ -117,18 +128,18 @@ describe('/levelconfig command', () => {
       const interaction = createInteraction('reset');
       await command.execute(interaction as never);
 
-      expect(Guild.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({ levelUpMessage: null }),
-      );
+      expect(mockUpdate).toHaveBeenCalledWith({
+        config: { levelUpMessage: null },
+      });
     });
 
     it('reset is case-insensitive', async () => {
       const interaction = createInteraction('RESET');
       await command.execute(interaction as never);
 
-      expect(Guild.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({ levelUpMessage: null }),
-      );
+      expect(mockUpdate).toHaveBeenCalledWith({
+        config: { levelUpMessage: null },
+      });
     });
 
     it('container title reads "# Level-Up Message Reset" when reset', async () => {
@@ -150,7 +161,6 @@ describe('/levelconfig command', () => {
         .filter((c) => c.type === 10)
         .map((c) => c.content)
         .join('\n');
-      // Default template: "GG {user}, you reached **level {level}**!"
       expect(allContent).toContain('<@111>');
       expect(allContent).toContain('level 5');
     });

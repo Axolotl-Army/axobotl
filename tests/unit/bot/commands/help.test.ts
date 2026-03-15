@@ -1,4 +1,24 @@
 import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../../../../src/shared/models/GuildPlugin', () => ({
+  GuildPlugin: { findAll: vi.fn().mockResolvedValue([]) },
+}));
+
+vi.mock('../../../../src/bot/plugins', () => ({
+  pluginCache: {
+    isEnabled: vi.fn().mockResolvedValue(true),
+  },
+  getAllPlugins: vi.fn().mockReturnValue([
+    {
+      id: 'leveling',
+      name: 'Leveling',
+      description: 'Track XP from messages, level up, and earn role rewards',
+      commands: [],
+      defaultConfig: {},
+    },
+  ]),
+}));
+
 import { command } from '../../../../src/bot/commands/help';
 
 // MessageFlags.IsComponentsV2 (32768) | MessageFlags.Ephemeral (64) = 32832
@@ -14,8 +34,11 @@ type AnyBuilder = {
   components?: AnyBuilder[];
 };
 
-function createInteraction() {
-  return { reply: vi.fn().mockResolvedValue(undefined) };
+function createInteraction(guildId?: string) {
+  return {
+    guildId: guildId ?? null,
+    reply: vi.fn().mockResolvedValue(undefined),
+  };
 }
 
 function getContainerBuilder(interaction: ReturnType<typeof createInteraction>): AnyBuilder {
@@ -115,8 +138,19 @@ describe('/help command', () => {
       expect(allText).toContain('Show this help message');
     });
 
-    it('contains text displays for all 4 public commands', async () => {
+    it('shows only base commands (2) when no guildId is present', async () => {
       const interaction = createInteraction();
+      await command.execute(interaction as never);
+
+      const container = getContainerBuilder(interaction);
+      const commandTexts = container.components!.filter(
+        (c) => c.data.type === TYPE_TEXT_DISPLAY && !(c.data.content as string).startsWith('#'),
+      );
+      expect(commandTexts).toHaveLength(2);
+    });
+
+    it('shows base + plugin commands (4) when guildId present and leveling enabled', async () => {
+      const interaction = createInteraction('guild123');
       await command.execute(interaction as never);
 
       const container = getContainerBuilder(interaction);
@@ -127,7 +161,7 @@ describe('/help command', () => {
     });
 
     it('does not include admin commands /xp and /levelconfig', async () => {
-      const interaction = createInteraction();
+      const interaction = createInteraction('guild123');
       await command.execute(interaction as never);
 
       const container = getContainerBuilder(interaction);

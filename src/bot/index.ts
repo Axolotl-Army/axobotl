@@ -1,12 +1,15 @@
 import 'dotenv/config';
-import { Client, GatewayIntentBits, Collection } from 'discord.js';
+import { Client, GatewayIntentBits } from 'discord.js';
 import sequelize from '../shared/database';
 import '../shared/models'; // register associations
 import type { SlashCommand } from './types';
+import { registerPlugin } from './plugins';
 
-// Commands
+// Base commands (always registered globally)
 import { command as pingCommand } from './commands/ping';
 import { command as helpCommand } from './commands/help';
+
+// Plugin commands (registered per-guild when plugin is enabled)
 import { command as rankCommand } from './commands/rank';
 import { command as leaderboardCommand } from './commands/leaderboard';
 import { command as xpCommand } from './commands/xp';
@@ -22,6 +25,22 @@ import messageCreateEvent from './events/messageCreate';
 const token = process.env['DISCORD_TOKEN'];
 if (!token) throw new Error('DISCORD_TOKEN environment variable is required');
 
+// ── Plugin registration ─────────────────────────────────────────────
+registerPlugin({
+  id: 'leveling',
+  name: 'Leveling',
+  description: 'Track XP from messages, level up, and earn role rewards',
+  commands: [rankCommand, leaderboardCommand, xpCommand, levelconfigCommand],
+  defaultConfig: {
+    levelUpMessage: null,
+    levelUpChannelId: null,
+    xpMin: 7,
+    xpMax: 13,
+    cooldownMs: 60000,
+    xpMultiplier: 1.0,
+  },
+});
+
 // ── Client setup ────────────────────────────────────────────────────
 const client = new Client({
   intents: [
@@ -30,10 +49,17 @@ const client = new Client({
   ],
 });
 
-// ── Command registry ────────────────────────────────────────────────
-const commands = new Map<string, SlashCommand>([
+// ── Command registries ──────────────────────────────────────────────
+
+// Base commands only (for global registration)
+const baseCommands = new Map<string, SlashCommand>([
   ['ping', pingCommand],
   ['help', helpCommand],
+]);
+
+// All commands (for routing in interactionCreate)
+const allCommands = new Map<string, SlashCommand>([
+  ...baseCommands,
   ['rank', rankCommand],
   ['leaderboard', leaderboardCommand],
   ['xp', xpCommand],
@@ -42,8 +68,8 @@ const commands = new Map<string, SlashCommand>([
 
 // ── Event registration ──────────────────────────────────────────────
 const events = [
-  readyEvent(commands),
-  createInteractionEvent(commands),
+  readyEvent(baseCommands),
+  createInteractionEvent(allCommands),
   guildCreateEvent,
   messageCreateEvent,
 ];

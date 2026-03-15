@@ -20,11 +20,18 @@ export const menuItems: MenuItemType[] = [
     icon: '/icons/sprite.svg#file-text',
     url: '/dashboard/logs',
   },
+  { key: 'plugins', label: 'Plugins', isTitle: true },
+  {
+    key: 'plugin-overview',
+    label: 'All Plugins',
+    icon: '/icons/sprite.svg#grid',
+    url: '/dashboard/plugins',
+  },
   { key: 'settings', label: 'Settings', isTitle: true },
   {
-    key: 'config',
-    label: 'Configuration',
-    icon: '/icons/sprite.svg#sliders',
-    url: '/dashboard/config',
+    key: 'general',
+    label: 'General',
+    icon: '/icons/sprite.svg#settings',
+    url: '/dashboard/settings',
   },
 ]

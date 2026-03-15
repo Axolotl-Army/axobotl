@@ -27,3 +27,13 @@ export async function getCommandLog() {
   const m = await getModels()
   return m.CommandLog
 }
+
+export async function getGuildPlugin() {
+  const m = await getModels()
+  return m.GuildPlugin
+}
+
+export async function getLevelRole() {
+  const m = await getModels()
+  return m.LevelRole
+}
