@@ -103,10 +103,10 @@ function cooldownKey(guildId: string, userId: string): string {
 }
 
 /** Returns true if the user is still within the XP cooldown window for this guild. */
-export function isOnCooldown(guildId: string, userId: string, now = Date.now()): boolean {
+export function isOnCooldown(guildId: string, userId: string, now = Date.now(), cooldownMs = COOLDOWN_MS): boolean {
   const last = cooldownStore.get(cooldownKey(guildId, userId));
   if (last === undefined) return false;
-  return now - last < COOLDOWN_MS;
+  return now - last < cooldownMs;
 }
 
 /** Records that XP was just awarded to this user in this guild. */
@@ -121,9 +121,9 @@ export function clearCooldownStore(): void {
 
 // ── Random XP per message ─────────────────────────────────────────────────────
 
-/** Returns a random integer in [XP_MIN, XP_MAX] inclusive. */
-export function randomXp(): number {
-  return XP_MIN + Math.floor(Math.random() * (XP_MAX - XP_MIN + 1));
+/** Returns a random integer in [min, max] inclusive. */
+export function randomXp(min = XP_MIN, max = XP_MAX): number {
+  return min + Math.floor(Math.random() * (max - min + 1));
 }
 
 export { DEFAULT_LEVEL_UP_MESSAGE, COOLDOWN_MS, XP_MIN, XP_MAX, MAX_LEVEL_UP_ANNOUNCEMENTS, XP_MAX_VALUE };

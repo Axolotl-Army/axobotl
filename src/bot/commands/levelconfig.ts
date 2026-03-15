@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import type { SlashCommand } from '../types';
-import { Guild } from '../../shared/models/Guild';
+import { GuildPlugin } from '../../shared/models/GuildPlugin';
 import { formatLevelUpMessage } from '../utils/levelUtils';
 import { createContainer, createTitle, createText, createSeparator } from '../utils/componentBuilders';
 
@@ -31,7 +31,16 @@ export const command: SlashCommand = {
     const isReset = message.toLowerCase() === RESET_KEYWORD;
     const newTemplate = isReset ? null : message;
 
-    await Guild.upsert({ id: guildId, name: interaction.guild?.name ?? guildId, levelUpMessage: newTemplate });
+    // Update plugin config
+    const [pluginRow] = await GuildPlugin.findOrCreate({
+      where: { guildId, pluginId: 'leveling' },
+      defaults: { guildId, pluginId: 'leveling', enabled: true, config: {} },
+    });
+
+    const currentConfig = (pluginRow.config as Record<string, unknown>) ?? {};
+    await pluginRow.update({
+      config: { ...currentConfig, levelUpMessage: newTemplate },
+    });
 
     const preview = formatLevelUpMessage(newTemplate, `<@${interaction.user.id}>`, 5);
 
