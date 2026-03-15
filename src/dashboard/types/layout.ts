@@ -2,18 +2,6 @@ import { Variant } from 'react-bootstrap/types'
 
 export type LayoutThemeType = 'light' | 'dark'
 
-export type ThemeType =
-  | 'default'
-  | 'nebula'
-  | 'olive'
-  | 'solar'
-  | 'lunar'
-  | 'night'
-  | 'aurora'
-  | 'earth'
-  | 'flare'
-  | 'storm'
-
 export type LayoutState = {
   theme: LayoutThemeType
   headerFixed: boolean
@@ -24,7 +12,6 @@ export type LayoutState = {
   darkNavigation: boolean
   colorblindMode: boolean
   highContrastMode: boolean
-  selectedTheme: ThemeType
 }
 
 export type LayoutOffcanvasStatesType = {
@@ -40,7 +27,6 @@ export interface LayoutType extends LayoutState {
   changeTheme: (theme: LayoutThemeType, persist?: boolean) => void
   customizer: OffcanvasControlType
   reset: () => void
-  changeThemeStyle: (themeId: string) => void
   toggleSetting: (key: keyof LayoutState, value: boolean) => void
   showBackdrop: () => void
   hideBackdrop: () => void
