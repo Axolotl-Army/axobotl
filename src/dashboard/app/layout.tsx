@@ -7,6 +7,7 @@ import { appTitle } from '@/helpers'
 import 'node-waves/dist/waves.css'
 import '@/public/css/sa-icons.css'
 import '@/public/css/smartapp.css'
+import '@/public/css/lunar.css'
 
 export const metadata: Metadata = {
   title: {
@@ -29,9 +30,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <link id="app-theme" rel="stylesheet" />
-      </head>
+      <head></head>
       <body className={publicSans.className}>
         <AuthSessionProvider>
           <AppWrapper>{children}</AppWrapper>
