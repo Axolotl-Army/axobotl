@@ -1,8 +1,9 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, MessageFlags, SectionBuilder, ThumbnailBuilder } from 'discord.js';
 import type { SlashCommand } from '../types';
 import { UserLevel } from '../../shared/models/UserLevel';
 import { getLevelFromXp, getXpForLevel } from '../utils/levelUtils';
 import { Op } from 'sequelize';
+import { createContainer, createTitle, createText, createSeparator } from '../utils/componentBuilders';
 
 export const command: SlashCommand = {
   data: new SlashCommandBuilder()
@@ -25,26 +26,35 @@ export const command: SlashCommand = {
     const xpIntoLevel = totalXp - xpForCurrent;
     const xpNeeded = xpForNext - xpForCurrent;
 
-    // Rank position within guild (users with more XP are ranked above)
     const above = await UserLevel.count({
       where: { guildId, xp: { [Op.gt]: totalXp } },
     });
     const rank = above + 1;
 
-    const embed = new EmbedBuilder()
-      .setColor(0x5865f2)
-      .setAuthor({ name: target.displayName, iconURL: target.displayAvatarURL() })
-      .setTitle(level === 0 ? 'Not ranked yet' : `Level ${level}`)
-      .addFields(
-        { name: 'Total XP', value: `${totalXp.toLocaleString()}`, inline: true },
-        { name: 'Guild Rank', value: `#${rank}`, inline: true },
-        {
-          name: `Progress to Level ${level + 1}`,
-          value: `${xpIntoLevel.toLocaleString()} / ${xpNeeded.toLocaleString()} XP`,
-          inline: false,
-        },
+    const avatarUrl = target.displayAvatarURL({ size: 128 });
+
+    const container = createContainer();
+
+    container.addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          createTitle(target.displayName),
+          createText(level === 0 ? 'Not ranked yet' : `Level ${level}`),
+        )
+        .setThumbnailAccessory(new ThumbnailBuilder({ media: { url: avatarUrl } })),
+    );
+
+    container
+      .addSeparatorComponents(createSeparator())
+      .addTextDisplayComponents(
+        createText(`**Total XP:** ${totalXp.toLocaleString()}`),
+        createText(`**Guild Rank:** #${rank}`),
+        createText(`**Progress to Level ${level + 1}:** ${xpIntoLevel.toLocaleString()} / ${xpNeeded.toLocaleString()} XP`),
       );
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.reply({
+      flags: MessageFlags.IsComponentsV2,
+      components: [container],
+    });
   },
 };

@@ -1,7 +1,8 @@
 import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import type { SlashCommand } from '../types';
 import { Guild } from '../../shared/models/Guild';
-import { formatLevelUpMessage, DEFAULT_LEVEL_UP_MESSAGE } from '../utils/levelUtils';
+import { formatLevelUpMessage } from '../utils/levelUtils';
+import { createContainer, createTitle, createText, createSeparator } from '../utils/componentBuilders';
 
 const RESET_KEYWORD = 'reset';
 
@@ -34,10 +35,18 @@ export const command: SlashCommand = {
 
     const preview = formatLevelUpMessage(newTemplate, `<@${interaction.user.id}>`, 5);
 
-    const content = isReset
-      ? `Level-up message reset to default.\n\n**Preview:** ${preview}`
-      : `Level-up message updated.\n\n**Preview:** ${preview}`;
+    const title = isReset ? 'Level-Up Message Reset' : 'Level-Up Message Updated';
 
-    await interaction.reply({ content, flags: MessageFlags.Ephemeral });
+    const container = createContainer(0x57f287)
+      .addTextDisplayComponents(createTitle(title))
+      .addSeparatorComponents(createSeparator())
+      .addTextDisplayComponents(
+        createText(`**Preview:** ${preview}`),
+      );
+
+    await interaction.reply({
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+      components: [container],
+    });
   },
 };
