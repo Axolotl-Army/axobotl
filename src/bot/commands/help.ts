@@ -1,6 +1,6 @@
-import { SlashCommandBuilder, MessageFlags, SectionBuilder, TextDisplayBuilder } from 'discord.js';
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import type { SlashCommand } from '../types';
-import { createContainer, createTitle, createSeparator } from '../utils/componentBuilders';
+import { createContainer, createTitle, createText, createSeparator } from '../utils/componentBuilders';
 
 const COMMANDS: Array<{ name: string; description: string }> = [
   { name: '/ping', description: 'Check bot latency' },
@@ -22,10 +22,8 @@ export const command: SlashCommand = {
       .addSeparatorComponents(createSeparator());
 
     for (const cmd of COMMANDS) {
-      container.addSectionComponents(
-        new SectionBuilder().addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(`**${cmd.name}**\n${cmd.description}`),
-        ),
+      container.addTextDisplayComponents(
+        createText(`**${cmd.name}**\n${cmd.description}`),
       );
     }
 
