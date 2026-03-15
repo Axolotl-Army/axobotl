@@ -29,7 +29,7 @@ Thumbs.db
 
 # Logs
 *.log
-logs/
+/logs/
 
 # SmartAdmin (local reference only)
 SmartAdmin/
