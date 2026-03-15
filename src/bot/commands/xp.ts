@@ -2,12 +2,12 @@ import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   MessageFlags,
-  EmbedBuilder,
 } from 'discord.js';
 import type { SlashCommand } from '../types';
 import { UserLevel } from '../../shared/models/UserLevel';
 import { computeXpUpdate, formatLevelUpMessage } from '../utils/levelUtils';
 import { Guild } from '../../shared/models/Guild';
+import { createContainer, createTitle, createText, createSeparator } from '../utils/componentBuilders';
 
 const AMOUNT_MIN = 1;
 const AMOUNT_MAX = 100_000;
@@ -28,7 +28,7 @@ export const command: SlashCommand = {
         .addIntegerOption((opt) =>
           opt
             .setName('amount')
-            .setDescription(`Amount of XP to add (${AMOUNT_MIN}–${AMOUNT_MAX})`)
+            .setDescription(`Amount of XP to add (${AMOUNT_MIN}--${AMOUNT_MAX})`)
             .setMinValue(AMOUNT_MIN)
             .setMaxValue(AMOUNT_MAX)
             .setRequired(true),
@@ -44,7 +44,7 @@ export const command: SlashCommand = {
         .addIntegerOption((opt) =>
           opt
             .setName('amount')
-            .setDescription(`Amount of XP to remove (${AMOUNT_MIN}–${AMOUNT_MAX})`)
+            .setDescription(`Amount of XP to remove (${AMOUNT_MIN}--${AMOUNT_MAX})`)
             .setMinValue(AMOUNT_MIN)
             .setMaxValue(AMOUNT_MAX)
             .setRequired(true),
@@ -60,7 +60,7 @@ export const command: SlashCommand = {
         .addIntegerOption((opt) =>
           opt
             .setName('amount')
-            .setDescription(`Exact XP value to set (0–${SET_MAX})`)
+            .setDescription(`Exact XP value to set (0--${SET_MAX})`)
             .setMinValue(0)
             .setMaxValue(SET_MAX)
             .setRequired(true),
@@ -98,16 +98,19 @@ export const command: SlashCommand = {
 
     await record.update({ xp: result.newXp, level: result.newLevel });
 
-    const embed = new EmbedBuilder()
-      .setColor(0x57f287)
-      .setTitle('XP Updated')
-      .addFields(
-        { name: 'Member', value: `<@${target.id}>`, inline: true },
-        { name: 'New XP', value: result.newXp.toLocaleString(), inline: true },
-        { name: 'New Level', value: String(result.newLevel), inline: true },
+    const container = createContainer(0x57f287)
+      .addTextDisplayComponents(createTitle('XP Updated'))
+      .addSeparatorComponents(createSeparator())
+      .addTextDisplayComponents(
+        createText(`**Member:** <@${target.id}>`),
+        createText(`**New XP:** ${result.newXp.toLocaleString()}`),
+        createText(`**New Level:** ${result.newLevel}`),
       );
 
-    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+    await interaction.reply({
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+      components: [container],
+    });
 
     // Post level-up notifications in the channel if levels were gained via add/set
     if (result.shouldNotify && sub !== 'remove') {

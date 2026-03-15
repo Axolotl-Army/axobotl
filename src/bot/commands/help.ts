@@ -1,5 +1,15 @@
-import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, MessageFlags, SectionBuilder, TextDisplayBuilder } from 'discord.js';
 import type { SlashCommand } from '../types';
+import { createContainer, createTitle, createSeparator } from '../utils/componentBuilders';
+
+const COMMANDS: Array<{ name: string; description: string }> = [
+  { name: '/ping', description: 'Check bot latency' },
+  { name: '/help', description: 'Show this help message' },
+  { name: '/rank', description: 'Check your XP rank in the server' },
+  { name: '/leaderboard', description: 'Show top XP earners' },
+  { name: '/xp', description: 'Admin: manage user XP' },
+  { name: '/levelconfig', description: 'Admin: configure level-up settings' },
+];
 
 export const command: SlashCommand = {
   data: new SlashCommandBuilder()
@@ -7,16 +17,21 @@ export const command: SlashCommand = {
     .setDescription('List all available commands'),
 
   async execute(interaction) {
-    const embed = new EmbedBuilder()
-      .setTitle('Axobotl — Available Commands')
-      .setColor(0x5865f2)
-      .addFields(
-        { name: '/ping', value: 'Check bot latency', inline: true },
-        { name: '/help', value: 'Show this help message', inline: true },
-      )
-      .setFooter({ text: 'More commands coming soon!' })
-      .setTimestamp();
+    const container = createContainer()
+      .addTextDisplayComponents(createTitle('Axobotl -- Commands'))
+      .addSeparatorComponents(createSeparator());
 
-    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+    for (const cmd of COMMANDS) {
+      container.addSectionComponents(
+        new SectionBuilder().addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(`**${cmd.name}**\n${cmd.description}`),
+        ),
+      );
+    }
+
+    await interaction.reply({
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+      components: [container],
+    });
   },
 };
