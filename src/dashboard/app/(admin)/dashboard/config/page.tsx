@@ -1,8 +1,9 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
-import { Card, Col, Row, Form, Button, Alert, Spinner } from 'react-bootstrap'
+import { Card, Col, Row, Form, Button, Spinner } from 'react-bootstrap'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import { basePath } from '@/helpers'
+import LevelingCard, { DEFAULT_LEVEL_UP_MESSAGE } from './LevelingCard'
 
 type GuildSummary = {
   id: string
@@ -18,19 +19,25 @@ type GuildConfig = {
   logsChannelId: string | null
 }
 
+type DiscordChannel = {
+  id: string
+  name: string
+}
+
 type SaveStatus = { type: 'success' | 'error'; message: string } | null
 
 export default function ConfigPage() {
   const [guilds, setGuilds] = useState<GuildSummary[]>([])
   const [selectedGuildId, setSelectedGuildId] = useState<string>('')
   const [config, setConfig] = useState<GuildConfig | null>(null)
+  const [channels, setChannels] = useState<DiscordChannel[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>(null)
 
   // Form state
   const [language, setLanguage] = useState('en')
-  const [levelUpMessage, setLevelUpMessage] = useState('')
+  const [levelUpMessage, setLevelUpMessage] = useState(DEFAULT_LEVEL_UP_MESSAGE)
   const [levelUpChannelMode, setLevelUpChannelMode] = useState<'same' | 'specific'>('same')
   const [levelUpChannelId, setLevelUpChannelId] = useState('')
 
@@ -51,28 +58,34 @@ export default function ConfigPage() {
     fetchGuilds()
   }, [])
 
-  // Load config when guild changes
+  // Load config + channels when guild changes
   useEffect(() => {
     if (!selectedGuildId) return
 
-    async function fetchConfig() {
+    async function fetchData() {
       setLoading(true)
       setSaveStatus(null)
       try {
-        const res = await fetch(`${basePath}/api/v1/guilds/${selectedGuildId}`)
-        if (res.ok) {
-          const data: GuildConfig = await res.json()
+        const [configRes, channelsRes] = await Promise.all([
+          fetch(`${basePath}/api/v1/guilds/${selectedGuildId}`),
+          fetch(`${basePath}/api/v1/guilds/${selectedGuildId}/channels`),
+        ])
+        if (configRes.ok) {
+          const data: GuildConfig = await configRes.json()
           setConfig(data)
           setLanguage(data.language ?? 'en')
-          setLevelUpMessage(data.levelUpMessage ?? '')
+          setLevelUpMessage(data.levelUpMessage ?? DEFAULT_LEVEL_UP_MESSAGE)
           setLevelUpChannelMode(data.levelUpChannelId ? 'specific' : 'same')
           setLevelUpChannelId(data.levelUpChannelId ?? '')
+        }
+        if (channelsRes.ok) {
+          setChannels(await channelsRes.json())
         }
       } finally {
         setLoading(false)
       }
     }
-    fetchConfig()
+    fetchData()
   }, [selectedGuildId])
 
   const handleSave = useCallback(async () => {
@@ -81,10 +94,13 @@ export default function ConfigPage() {
     setSaving(true)
     setSaveStatus(null)
 
+    const templateToSave = levelUpMessage.trim()
+    const isDefault = templateToSave === DEFAULT_LEVEL_UP_MESSAGE || templateToSave === ''
+
     const body: Record<string, string | null> = {
       language,
-      levelUpMessage: levelUpMessage.trim() || null,
-      levelUpChannelId: levelUpChannelMode === 'specific' ? (levelUpChannelId.trim() || null) : null,
+      levelUpMessage: isDefault ? null : templateToSave,
+      levelUpChannelId: levelUpChannelMode === 'specific' ? (levelUpChannelId || null) : null,
     }
 
     try {
@@ -108,10 +124,6 @@ export default function ConfigPage() {
       setSaving(false)
     }
   }, [selectedGuildId, language, levelUpMessage, levelUpChannelMode, levelUpChannelId])
-
-  const previewMessage = (levelUpMessage.trim() || 'GG {user}, you reached **level {level}**!')
-    .replace(/\{user\}/g, '@User')
-    .replace(/\{level\}/g, '5')
 
   return (
     <div className="content-wrapper">
@@ -146,84 +158,17 @@ export default function ConfigPage() {
           </div>
         ) : config ? (
           <>
-            {saveStatus && (
-              <Alert
-                variant={saveStatus.type === 'success' ? 'success' : 'danger'}
-                dismissible
-                onClose={() => setSaveStatus(null)}
-              >
-                {saveStatus.message}
-              </Alert>
-            )}
-
             <Row>
-              {/* Leveling Card */}
               <Col lg={6} className="mb-4">
-                <Card className="h-100">
-                  <Card.Header>
-                    <div className="d-flex align-items-center">
-                      <svg className="sa-icon sa-icon-lg sa-icon-primary me-2">
-                        <use href={`${basePath}/icons/sprite.svg#award`}></use>
-                      </svg>
-                      <h5 className="mb-0">Leveling</h5>
-                    </div>
-                  </Card.Header>
-                  <Card.Body>
-                    <Form.Group className="mb-3">
-                      <Form.Label className="fw-semibold">Level-Up Notification Channel</Form.Label>
-                      <div className="mb-2">
-                        <Form.Check
-                          type="radio"
-                          id="channel-same"
-                          name="levelUpChannel"
-                          label="Same channel as user's message"
-                          checked={levelUpChannelMode === 'same'}
-                          onChange={() => setLevelUpChannelMode('same')}
-                        />
-                        <Form.Check
-                          type="radio"
-                          id="channel-specific"
-                          name="levelUpChannel"
-                          label="Specific channel"
-                          checked={levelUpChannelMode === 'specific'}
-                          onChange={() => setLevelUpChannelMode('specific')}
-                        />
-                      </div>
-                      {levelUpChannelMode === 'specific' && (
-                        <Form.Control
-                          type="text"
-                          placeholder="Channel ID (e.g. 123456789012345678)"
-                          value={levelUpChannelId}
-                          onChange={(e) => setLevelUpChannelId(e.target.value)}
-                          maxLength={20}
-                        />
-                      )}
-                      <Form.Text className="text-muted">
-                        Where level-up notifications are posted.
-                      </Form.Text>
-                    </Form.Group>
-
-                    <Form.Group className="mb-3">
-                      <Form.Label className="fw-semibold">Level-Up Message Template</Form.Label>
-                      <Form.Control
-                        as="textarea"
-                        rows={2}
-                        placeholder="GG {user}, you reached **level {level}**!"
-                        value={levelUpMessage}
-                        onChange={(e) => setLevelUpMessage(e.target.value)}
-                        maxLength={500}
-                      />
-                      <Form.Text className="text-muted">
-                        Use <code>{'{user}'}</code> and <code>{'{level}'}</code> as placeholders. Leave blank for default.
-                      </Form.Text>
-                    </Form.Group>
-
-                    <div className="p-2 rounded bg-dark bg-opacity-25">
-                      <small className="text-muted d-block mb-1">Preview:</small>
-                      <span>{previewMessage}</span>
-                    </div>
-                  </Card.Body>
-                </Card>
+                <LevelingCard
+                  channels={channels}
+                  levelUpChannelMode={levelUpChannelMode}
+                  setLevelUpChannelMode={setLevelUpChannelMode}
+                  levelUpChannelId={levelUpChannelId}
+                  setLevelUpChannelId={setLevelUpChannelId}
+                  levelUpMessage={levelUpMessage}
+                  setLevelUpMessage={setLevelUpMessage}
+                />
               </Col>
 
               {/* General Card */}
@@ -260,11 +205,30 @@ export default function ConfigPage() {
               </Col>
             </Row>
 
-            <div className="d-flex justify-content-end">
+            <div className="d-flex align-items-center gap-3">
+              {saveStatus && (
+                <div
+                  className="flex-grow-1 rounded px-3 py-2 d-flex align-items-center justify-content-between"
+                  style={{
+                    backgroundColor: saveStatus.type === 'success' ? '#198754' : '#dc2626',
+                    color: '#fff',
+                  }}
+                >
+                  <span>{saveStatus.message}</span>
+                  <button
+                    type="button"
+                    className="btn-close btn-close-white btn-sm"
+                    onClick={() => setSaveStatus(null)}
+                    aria-label="Close"
+                  />
+                </div>
+              )}
+              {!saveStatus && <div className="flex-grow-1" />}
               <Button
                 variant="primary"
                 onClick={handleSave}
                 disabled={saving}
+                className="flex-shrink-0"
               >
                 {saving ? (
                   <>
@@ -278,7 +242,9 @@ export default function ConfigPage() {
             </div>
           </>
         ) : (
-          <Alert variant="info">No guild selected or guild not found.</Alert>
+          <div className="rounded px-3 py-2" style={{ backgroundColor: '#0d6efd22', color: 'var(--bs-body-color)' }}>
+            No guild selected or guild not found.
+          </div>
         )}
       </div>
     </div>
