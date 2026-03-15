@@ -20,6 +20,7 @@ const SettingsDrawer = () => {
     customizer,
   } = useLayoutContext()
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: only sync navFull when navCollapsed changes, not on every toggleSetting re-render
   useEffect(() => {
     if (navCollapsed && !navFull) {
       toggleSetting('navFull', true)
