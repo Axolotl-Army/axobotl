@@ -10,7 +10,7 @@ export async function GET() {
   if (denied) return denied
 
   const sequelize = await getSequelize()
-  const commandStats = await sequelize.query<{
+  const rows = await sequelize.query<{
     command: string
     count: string
     last_used: Date
@@ -21,6 +21,8 @@ export async function GET() {
      ORDER BY count DESC`,
     { type: QueryTypes.SELECT },
   )
+
+  const commandStats = rows.map((r) => ({ ...r, count: parseInt(r.count, 10) }))
 
   return NextResponse.json(commandStats)
 }
