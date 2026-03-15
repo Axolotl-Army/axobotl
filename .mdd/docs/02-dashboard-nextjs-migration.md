@@ -60,8 +60,7 @@ routes:
 models:
   - Guild (existing, shared)
   - CommandLog (existing, shared)
-test_files:
-  - tests/e2e/dashboard.spec.ts
+test_files: []
 known_issues: []
 ---
 

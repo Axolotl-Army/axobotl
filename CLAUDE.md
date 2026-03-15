@@ -16,8 +16,6 @@
 | `pnpm deploy-commands` | Register slash commands with Discord |
 | `pnpm db:sync` | Sync Sequelize models to database |
 | `pnpm test:unit` | Run unit tests (Vitest) |
-| `pnpm test:e2e` | Run E2E tests (Playwright, port 4000) |
-| `pnpm test:kill-ports` | Kill test ports 4000/4010/4020 |
 | `docker compose up` | Start all services with PostgreSQL |
 
 ---
