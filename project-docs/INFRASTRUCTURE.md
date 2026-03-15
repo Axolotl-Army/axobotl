@@ -10,7 +10,7 @@
 │  │   (ghcr.io)             │    │ (ghcr.io)                │                 │
 │  │   Node 20 Alpine        │    │ Node 20 Alpine           │                 │
 │  │   target: bot           │    │ target: dashboard        │                 │
-│  │   dist/bot/index.js     │    │ dist/dashboard/index.js  │                 │
+│  │   dist/bot/index.js     │    │ Next.js 15 standalone    │                 │
 │  │                         │    │ port: 3000               │<── HTTP :3000   │
 │  └────────────┬────────────┘    └─────────────┬────────────┘                 │
 │               │                               │                              │
@@ -27,9 +27,9 @@
 
 ┌──────────────────────── Development ─────────────────────────┐
 │                                                              │
-│  pnpm dev:bot        → tsx watch src/bot/index.ts            │
-│  pnpm dev:dashboard  → tsx watch src/dashboard/index.ts      │
-│  docker compose up postgres -d  → PostgreSQL on :5432        │
+│  pnpm dev:bot        → tsx watch src/bot/index.ts                   │
+│  pnpm dev:dashboard  → cd src/dashboard && npx next dev -p 3000     │
+│  docker compose up postgres -d  → PostgreSQL on :5432               │
 │                                                              │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -45,8 +45,7 @@ test job:
   ├── PostgreSQL 16 service (axobotl_test DB)
   ├── pnpm install --frozen-lockfile
   ├── pnpm typecheck
-  ├── pnpm test:unit       (Vitest, port 5432)
-  └── pnpm test:e2e        (Playwright Chromium, port 4000)
+  └── pnpm test:unit       (Vitest, port 5432)
 
 docker job (main push or v* tag, after test):
   ├── Login to ghcr.io
@@ -64,10 +63,10 @@ docker job (main push or v* tag, after test):
 
 | Environment | Bot | Dashboard | Database |
 |---|---|---|---|
-| Development | `pnpm dev:bot` (tsx watch) | `pnpm dev:dashboard` (tsx watch) | Local PostgreSQL :5432 |
+| Development | `pnpm dev:bot` (tsx watch) | `pnpm dev:dashboard` (next dev :3000) | Local PostgreSQL :5432 |
 | Docker (local) | `docker compose up bot` | `docker compose up dashboard` | `docker compose up postgres` |
 | Production | `axobotl-bot:latest` | `axobotl-dashboard:latest` | PostgreSQL 16 container |
-| CI | not started | port 4000 (E2E) | postgres service (axobotl_test) |
+| CI | not started | not started | postgres service (axobotl_test) |
 
 ## Ports
 
@@ -80,7 +79,7 @@ docker job (main push or v* tag, after test):
 
 Both images are built from the same multi-stage `Dockerfile`:
 - **Stage `bot`** — Node 20 Alpine, runs `dist/bot/index.js`
-- **Stage `dashboard`** — Node 20 Alpine, runs `dist/dashboard/index.js`, exposes port 3000
+- **Stage `dashboard`** — Node 20 Alpine, Next.js 15 standalone output, exposes port 3000
 
 Registry: `ghcr.io/<owner>/axobotl-bot` and `ghcr.io/<owner>/axobotl-dashboard`
 
@@ -91,11 +90,13 @@ See `.env.example` for a full annotated list. Critical variables:
 - `DISCORD_CLIENT_ID` — Application ID
 - `DISCORD_CLIENT_SECRET` — OAuth2 secret
 - `DATABASE_URL` — PostgreSQL connection string
-- `SESSION_SECRET` — Random 32+ byte hex string
-- `DISCORD_CALLBACK_URL` — OAuth2 redirect URI (must match Discord app settings)
+- `NEXTAUTH_URL` — Full URL of the dashboard (e.g. `http://localhost:3000`)
+- `BOT_OWNER_ID` — Discord user ID allowed to access the dashboard
+- `SESSION_SECRET` — Random 32+ byte hex string (NextAuth secret)
 
 ## Changelog
 
 | Date | Change |
 |---|---|
 | 2026-03-08 | Updated infrastructure diagram from code scan (docker-compose.yml, ci.yml) |
+| 2026-03-15 | Updated for Next.js 15 dashboard, removed Playwright E2E from CI, updated env vars |
