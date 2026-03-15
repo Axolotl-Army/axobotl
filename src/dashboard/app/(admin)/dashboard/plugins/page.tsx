@@ -3,9 +3,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Card, Col, Row, Form, Spinner } from 'react-bootstrap'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import { basePath } from '@/helpers'
+import { useGuildContext } from '@/context/useGuildContext'
 import Link from 'next/link'
-
-type GuildSummary = { id: string; name: string }
 
 type PluginInfo = {
   id: string
@@ -19,27 +18,10 @@ const PLUGIN_ICONS: Record<string, string> = {
 }
 
 export default function PluginsPage() {
-  const [guilds, setGuilds] = useState<GuildSummary[]>([])
-  const [selectedGuildId, setSelectedGuildId] = useState('')
+  const { selectedGuildId, loading: guildsLoading } = useGuildContext()
   const [plugins, setPlugins] = useState<PluginInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [toggling, setToggling] = useState<string | null>(null)
-
-  useEffect(() => {
-    async function fetchGuilds() {
-      try {
-        const res = await fetch(`${basePath}/api/v1/guilds`)
-        if (res.ok) {
-          const data: GuildSummary[] = await res.json()
-          setGuilds(data)
-          if (data.length > 0) setSelectedGuildId(data[0].id)
-        }
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchGuilds()
-  }, [])
 
   useEffect(() => {
     if (!selectedGuildId) return
@@ -90,29 +72,7 @@ export default function PluginsPage() {
       <PageBreadcrumb title="Plugins" subTitle1="Dashboard" subTitle2="Plugins" />
 
       <div className="main-content">
-        <Card className="mb-4">
-          <Card.Body>
-            <Form.Group>
-              <Form.Label className="fw-semibold">Select Guild</Form.Label>
-              {loading && guilds.length === 0 ? (
-                <div className="text-muted">Loading guilds...</div>
-              ) : (
-                <Form.Select
-                  value={selectedGuildId}
-                  onChange={(e) => setSelectedGuildId(e.target.value)}
-                >
-                  {guilds.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name}
-                    </option>
-                  ))}
-                </Form.Select>
-              )}
-            </Form.Group>
-          </Card.Body>
-        </Card>
-
-        {loading && plugins.length === 0 ? (
+        {guildsLoading || (loading && plugins.length === 0) ? (
           <div className="text-center py-4">
             <Spinner animation="border" size="sm" className="me-2" />
             Loading plugins...

@@ -1,5 +1,6 @@
 import AppLogo from '@/components/AppLogo'
 import ProfileDropdown from '@/layouts/components/topbar/components/ProfileDropdown'
+import GuildSelector from '@/layouts/components/topbar/components/GuildSelector'
 import { useLayoutContext } from '@/context/useLayoutContext'
 import ToggleMobileMenu from '@/layouts/components/topbar/components/ToggleMobileMenu'
 import ToggleSidenav from '@/layouts/components/topbar/components/ToggleSidenav'
@@ -23,6 +24,8 @@ const Topbar = () => {
           <input type="text" className="form-control" placeholder="Search for anything" />
         </form>
       </div>
+
+      <GuildSelector />
 
       <button
         type="button"

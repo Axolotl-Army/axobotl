@@ -18,6 +18,7 @@ export class Guild extends Model<
   declare language: CreationOptional<string>;
   declare levelUpMessage: CreationOptional<string | null>;
   declare levelUpChannelId: CreationOptional<string | null>;
+  declare disabledCommands: CreationOptional<string[]>;
   declare readonly createdAt: CreationOptional<Date>;
   declare readonly updatedAt: CreationOptional<Date>;
 }
@@ -60,6 +61,12 @@ Guild.init(
       allowNull: true,
       defaultValue: null,
       comment: 'Channel for level-up notifications; null = same channel as message',
+    },
+    disabledCommands: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+      defaultValue: [],
+      comment: 'Array of base command names disabled for this guild',
     },
     createdAt: DataTypes.DATE,
     updatedAt: DataTypes.DATE,

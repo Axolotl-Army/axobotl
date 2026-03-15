@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Card, Col, Row, Form, Button, Spinner, Table } from 'react-bootstrap'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import { basePath } from '@/helpers'
+import { useGuildContext } from '@/context/useGuildContext'
 
-type GuildSummary = { id: string; name: string }
 type DiscordChannel = { id: string; name: string }
 type DiscordRole = { id: string; name: string; color: number }
 type LevelRoleEntry = { level: number; roleId: string }
@@ -31,8 +31,7 @@ const DEFAULTS: LevelingConfig = {
 }
 
 export default function LevelingPluginPage() {
-  const [guilds, setGuilds] = useState<GuildSummary[]>([])
-  const [selectedGuildId, setSelectedGuildId] = useState('')
+  const { selectedGuildId, loading: guildsLoading } = useGuildContext()
   const [channels, setChannels] = useState<DiscordChannel[]>([])
   const [roles, setRoles] = useState<DiscordRole[]>([])
   const [loading, setLoading] = useState(true)
@@ -56,23 +55,6 @@ export default function LevelingPluginPage() {
   const [levelRoles, setLevelRoles] = useState<LevelRoleEntry[]>([])
   const [newRoleLevel, setNewRoleLevel] = useState('')
   const [newRoleId, setNewRoleId] = useState('')
-
-  // Load guilds
-  useEffect(() => {
-    async function fetchGuilds() {
-      try {
-        const res = await fetch(`${basePath}/api/v1/guilds`)
-        if (res.ok) {
-          const data: GuildSummary[] = await res.json()
-          setGuilds(data)
-          if (data.length > 0) setSelectedGuildId(data[0].id)
-        }
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchGuilds()
-  }, [])
 
   // Load plugin config when guild changes
   useEffect(() => {
@@ -228,30 +210,7 @@ export default function LevelingPluginPage() {
       <PageBreadcrumb title="Leveling" subTitle1="Plugins" subTitle2="Leveling" />
 
       <div className="main-content">
-        {/* Guild Selector */}
-        <Card className="mb-4">
-          <Card.Body>
-            <Form.Group>
-              <Form.Label className="fw-semibold">Select Guild</Form.Label>
-              {loading && guilds.length === 0 ? (
-                <div className="text-muted">Loading guilds...</div>
-              ) : (
-                <Form.Select
-                  value={selectedGuildId}
-                  onChange={(e) => setSelectedGuildId(e.target.value)}
-                >
-                  {guilds.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name}
-                    </option>
-                  ))}
-                </Form.Select>
-              )}
-            </Form.Group>
-          </Card.Body>
-        </Card>
-
-        {loading ? (
+        {guildsLoading || loading ? (
           <div className="text-center py-4">
             <Spinner animation="border" size="sm" className="me-2" />
             Loading configuration...
