@@ -20,4 +20,11 @@ export const menuItems: MenuItemType[] = [
     icon: '/icons/sprite.svg#file-text',
     url: '/dashboard/logs',
   },
+  { key: 'settings', label: 'Settings', isTitle: true },
+  {
+    key: 'config',
+    label: 'Configuration',
+    icon: '/icons/sprite.svg#sliders',
+    url: '/dashboard/config',
+  },
 ]

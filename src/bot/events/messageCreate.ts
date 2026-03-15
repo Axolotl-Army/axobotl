@@ -1,4 +1,4 @@
-import { Events, Message } from 'discord.js';
+import { Events, Message, TextChannel } from 'discord.js';
 import type { BotEvent } from '../types';
 import { UserLevel } from '../../shared/models/UserLevel';
 import { Guild } from '../../shared/models/Guild';
@@ -46,11 +46,24 @@ const messageCreateEvent: BotEvent = {
         const template = guildRecord?.levelUpMessage ?? null;
         const userMention = `<@${userId}>`;
 
-        // message.guildId is confirmed non-null above, so this is a guild text channel
-        const channel = message.channel as { send: (content: string) => Promise<unknown> };
+        // Determine target channel: configured channel or same channel as message
+        let targetChannel: { send: (content: string) => Promise<unknown> } =
+          message.channel as { send: (content: string) => Promise<unknown> };
+
+        if (guildRecord?.levelUpChannelId && message.guild) {
+          try {
+            const configured = await message.guild.channels.fetch(guildRecord.levelUpChannelId);
+            if (configured instanceof TextChannel) {
+              targetChannel = configured;
+            }
+          } catch {
+            // Channel doesn't exist or bot lacks access -- fall back to message channel
+          }
+        }
+
         for (const lvl of result.levelsToAnnounce) {
           const msg = formatLevelUpMessage(template, userMention, lvl);
-          await channel.send(msg);
+          await targetChannel.send(msg);
         }
       }
     } catch (err) {

@@ -2,8 +2,6 @@ import {
   SlashCommandBuilder,
   MessageFlags,
   ComponentType,
-  type ActionRowBuilder,
-  type MessageActionRowComponentBuilder,
 } from 'discord.js';
 import type { SlashCommand } from '../types';
 import { UserLevel } from '../../shared/models/UserLevel';
@@ -15,7 +13,6 @@ import {
   createSeparator,
   createPageFooter,
   createPaginationRow,
-  disableAllButtons,
 } from '../utils/componentBuilders';
 
 const PAGE_SIZE = 10;
@@ -179,13 +176,9 @@ export const command: SlashCommand = {
           .addSeparatorComponents(createSeparator())
           .addTextDisplayComponents(createPageFooter(currentPage, freshTotalPages));
 
-        const disabledRow = disableAllButtons(
-          createPaginationRow('lb', userId, guildId, currentPage, freshTotalPages, true),
-        );
-
         await interaction.editReply({
           flags: MessageFlags.IsComponentsV2,
-          components: [container, disabledRow],
+          components: [container],
         });
       } catch {
         // Message may have been deleted
