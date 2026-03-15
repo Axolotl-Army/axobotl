@@ -7,8 +7,6 @@ const COMMANDS: Array<{ name: string; description: string }> = [
   { name: '/help', description: 'Show this help message' },
   { name: '/rank', description: 'Check your XP rank in the server' },
   { name: '/leaderboard', description: 'Show top XP earners' },
-  { name: '/xp', description: 'Admin: manage user XP' },
-  { name: '/levelconfig', description: 'Admin: configure level-up settings' },
 ];
 
 export const command: SlashCommand = {

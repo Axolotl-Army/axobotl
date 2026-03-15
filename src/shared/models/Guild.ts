@@ -17,6 +17,7 @@ export class Guild extends Model<
   declare logsChannelId: CreationOptional<string | null>;
   declare language: CreationOptional<string>;
   declare levelUpMessage: CreationOptional<string | null>;
+  declare levelUpChannelId: CreationOptional<string | null>;
   declare readonly createdAt: CreationOptional<Date>;
   declare readonly updatedAt: CreationOptional<Date>;
 }
@@ -53,6 +54,12 @@ Guild.init(
       allowNull: true,
       defaultValue: null,
       comment: 'Custom level-up message template; null = use default',
+    },
+    levelUpChannelId: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+      defaultValue: null,
+      comment: 'Channel for level-up notifications; null = same channel as message',
     },
     createdAt: DataTypes.DATE,
     updatedAt: DataTypes.DATE,

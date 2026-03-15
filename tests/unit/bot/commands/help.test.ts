@@ -115,17 +115,29 @@ describe('/help command', () => {
       expect(allText).toContain('Show this help message');
     });
 
-    it('contains text displays for all 6 commands', async () => {
+    it('contains text displays for all 4 public commands', async () => {
       const interaction = createInteraction();
       await command.execute(interaction as never);
 
       const container = getContainerBuilder(interaction);
-      // Title + Separator + 6 command text displays = 8 children
-      // Filter out title (starts with #) and separator
       const commandTexts = container.components!.filter(
         (c) => c.data.type === TYPE_TEXT_DISPLAY && !(c.data.content as string).startsWith('#'),
       );
-      expect(commandTexts).toHaveLength(6);
+      expect(commandTexts).toHaveLength(4);
+    });
+
+    it('does not include admin commands /xp and /levelconfig', async () => {
+      const interaction = createInteraction();
+      await command.execute(interaction as never);
+
+      const container = getContainerBuilder(interaction);
+      const allText = container.components!
+        .filter((c) => c.data.type === TYPE_TEXT_DISPLAY)
+        .map((c) => c.data.content as string)
+        .join('\n');
+
+      expect(allText).not.toContain('/xp');
+      expect(allText).not.toContain('/levelconfig');
     });
   });
 });
