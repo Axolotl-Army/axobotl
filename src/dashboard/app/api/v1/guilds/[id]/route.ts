@@ -4,14 +4,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireOwner } from '@/lib/auth'
 import { getGuild } from '@/lib/db'
 
-const UPDATABLE_FIELDS = ['language', 'levelUpMessage', 'levelUpChannelId'] as const
-type UpdatableField = (typeof UPDATABLE_FIELDS)[number]
+const UPDATABLE_STRING_FIELDS = ['language', 'levelUpMessage', 'levelUpChannelId'] as const
+type UpdatableStringField = (typeof UPDATABLE_STRING_FIELDS)[number]
 
-const FIELD_LIMITS: Record<UpdatableField, number> = {
+const FIELD_LIMITS: Record<UpdatableStringField, number> = {
   language: 10,
   levelUpMessage: 500,
   levelUpChannelId: 20,
 }
+
+const VALID_BASE_COMMANDS = ['help', 'ping', 'info']
 
 export async function GET(
   _request: NextRequest,
@@ -47,9 +49,9 @@ export async function PATCH(
   }
 
   const body = (await request.json()) as Record<string, unknown>
-  const updates: Record<string, string | null> = {}
+  const updates: Record<string, unknown> = {}
 
-  for (const field of UPDATABLE_FIELDS) {
+  for (const field of UPDATABLE_STRING_FIELDS) {
     if (!(field in body)) continue
 
     const value = body[field]
@@ -81,6 +83,17 @@ export async function PATCH(
     }
 
     updates[field] = trimmed
+  }
+
+  if ('disabledCommands' in body) {
+    const val = body['disabledCommands']
+    if (!Array.isArray(val) || !val.every((v) => typeof v === 'string' && VALID_BASE_COMMANDS.includes(v))) {
+      return NextResponse.json(
+        { error: `disabledCommands must be an array of: ${VALID_BASE_COMMANDS.join(', ')}` },
+        { status: 400 },
+      )
+    }
+    updates['disabledCommands'] = [...new Set(val)]
   }
 
   if (Object.keys(updates).length === 0) {

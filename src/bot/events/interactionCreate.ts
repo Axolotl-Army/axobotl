@@ -1,7 +1,9 @@
 import { Events, Interaction, MessageFlags } from 'discord.js';
 import type { BotEvent, SlashCommand } from '../types';
-import { CommandLog } from '../../shared/models';
+import { CommandLog, Guild } from '../../shared/models';
 import { pluginCache, getPluginForCommand } from '../plugins';
+
+const BASE_COMMAND_NAMES = new Set(['ping', 'help', 'info']);
 
 function createEvent(commands: Map<string, SlashCommand>): BotEvent {
   return {
@@ -13,6 +15,18 @@ function createEvent(commands: Map<string, SlashCommand>): BotEvent {
       if (!command) {
         console.error(`[Bot] No command matching /${interaction.commandName}`);
         return;
+      }
+
+      // Check if this base command is disabled for the guild
+      if (BASE_COMMAND_NAMES.has(interaction.commandName) && interaction.guildId) {
+        const guild = await Guild.findByPk(interaction.guildId);
+        if (guild?.disabledCommands?.includes(interaction.commandName)) {
+          await interaction.reply({
+            content: 'This command is disabled in this server.',
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
       }
 
       // Check if this command belongs to a plugin and if it's enabled

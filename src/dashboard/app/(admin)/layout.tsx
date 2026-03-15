@@ -7,6 +7,7 @@ import SettingsDrawer from '@/layouts/components/SettingsDrawer'
 import Sidenav from '@/layouts/components/sidenav'
 import Topbar from '@/layouts/components/topbar'
 import Loader from '@/components/Loader'
+import { GuildProvider } from '@/context/useGuildContext'
 
 const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { status } = useSession()
@@ -27,15 +28,17 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   if (status === 'unauthenticated') return <Loader height="100vh" />
 
   return (
-    <div className="app-wrap">
-      <Topbar />
-      <Sidenav />
-      <main className="app-body">
-        <div className="app-content">{children}</div>
-        <Footer />
-      </main>
-      <SettingsDrawer />
-    </div>
+    <GuildProvider>
+      <div className="app-wrap">
+        <Topbar />
+        <Sidenav />
+        <main className="app-body">
+          <div className="app-content">{children}</div>
+          <Footer />
+        </main>
+        <SettingsDrawer />
+      </div>
+    </GuildProvider>
   )
 }
 

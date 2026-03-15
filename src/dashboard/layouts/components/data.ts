@@ -27,6 +27,12 @@ export const menuItems: MenuItemType[] = [
     icon: '/icons/sprite.svg#grid',
     url: '/dashboard/plugins',
   },
+  {
+    key: 'plugin-leveling',
+    label: 'Leveling',
+    icon: '/icons/sprite.svg#award',
+    url: '/dashboard/plugins/leveling',
+  },
   { key: 'settings', label: 'Settings', isTitle: true },
   {
     key: 'general',

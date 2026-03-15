@@ -4,6 +4,14 @@ vi.mock('../../../../src/shared/models/GuildPlugin', () => ({
   GuildPlugin: { findAll: vi.fn().mockResolvedValue([]) },
 }));
 
+vi.mock('../../../../src/shared/models', () => ({
+  Guild: { findByPk: vi.fn().mockResolvedValue(null) },
+  CommandLog: {},
+  UserLevel: {},
+  GuildPlugin: { findAll: vi.fn().mockResolvedValue([]) },
+  LevelRole: {},
+}));
+
 vi.mock('../../../../src/bot/plugins', () => ({
   pluginCache: {
     isEnabled: vi.fn().mockResolvedValue(true),
@@ -138,7 +146,7 @@ describe('/help command', () => {
       expect(allText).toContain('Show this help message');
     });
 
-    it('shows only base commands (2) when no guildId is present', async () => {
+    it('shows only base commands (3) when no guildId is present', async () => {
       const interaction = createInteraction();
       await command.execute(interaction as never);
 
@@ -146,10 +154,10 @@ describe('/help command', () => {
       const commandTexts = container.components!.filter(
         (c) => c.data.type === TYPE_TEXT_DISPLAY && !(c.data.content as string).startsWith('#'),
       );
-      expect(commandTexts).toHaveLength(2);
+      expect(commandTexts).toHaveLength(3);
     });
 
-    it('shows base + plugin commands (4) when guildId present and leveling enabled', async () => {
+    it('shows base + plugin commands (5) when guildId present and leveling enabled', async () => {
       const interaction = createInteraction('guild123');
       await command.execute(interaction as never);
 
@@ -157,7 +165,7 @@ describe('/help command', () => {
       const commandTexts = container.components!.filter(
         (c) => c.data.type === TYPE_TEXT_DISPLAY && !(c.data.content as string).startsWith('#'),
       );
-      expect(commandTexts).toHaveLength(4);
+      expect(commandTexts).toHaveLength(5);
     });
 
     it('does not include admin commands /xp and /levelconfig', async () => {

@@ -8,6 +8,7 @@ import { registerPlugin } from './plugins';
 // Base commands (always registered globally)
 import { command as pingCommand } from './commands/ping';
 import { command as helpCommand } from './commands/help';
+import { command as infoCommand } from './commands/info';
 
 // Plugin commands (registered per-guild when plugin is enabled)
 import { command as rankCommand } from './commands/rank';
@@ -55,6 +56,7 @@ const client = new Client({
 const baseCommands = new Map<string, SlashCommand>([
   ['ping', pingCommand],
   ['help', helpCommand],
+  ['info', infoCommand],
 ]);
 
 // All commands (for routing in interactionCreate)

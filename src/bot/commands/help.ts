@@ -2,10 +2,12 @@ import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import type { SlashCommand } from '../types';
 import { createContainer, createTitle, createText, createSeparator } from '../utils/componentBuilders';
 import { pluginCache, getAllPlugins } from '../plugins';
+import { Guild } from '../../shared/models';
 
 const BASE_COMMANDS: Array<{ name: string; description: string }> = [
   { name: '/ping', description: 'Check bot latency' },
   { name: '/help', description: 'Show this help message' },
+  { name: '/info', description: 'Show general information about the bot' },
 ];
 
 const PLUGIN_COMMANDS: Record<string, Array<{ name: string; description: string }>> = {
@@ -25,7 +27,15 @@ export const command: SlashCommand = {
       .addTextDisplayComponents(createTitle('Axobotl -- Commands'))
       .addSeparatorComponents(createSeparator());
 
+    const disabledCommands: string[] = [];
+    if (interaction.guildId) {
+      const guild = await Guild.findByPk(interaction.guildId);
+      if (guild?.disabledCommands) disabledCommands.push(...guild.disabledCommands);
+    }
+
     for (const cmd of BASE_COMMANDS) {
+      const cmdName = cmd.name.slice(1); // remove leading /
+      if (disabledCommands.includes(cmdName)) continue;
       container.addTextDisplayComponents(
         createText(`**${cmd.name}**\n${cmd.description}`),
       );

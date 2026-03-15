@@ -3,34 +3,28 @@ import { useCallback, useEffect, useState } from 'react'
 import { Card, Form, Button, Spinner } from 'react-bootstrap'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import { basePath } from '@/helpers'
+import { useGuildContext } from '@/context/useGuildContext'
 
-type GuildSummary = { id: string; name: string }
-type GuildConfig = { id: string; language: string }
+type GuildConfig = {
+  id: string
+  language: string
+  disabledCommands: string[]
+}
 type SaveStatus = { type: 'success' | 'error'; message: string } | null
 
+const BASE_COMMANDS = [
+  { name: 'help', label: 'Help', description: 'List all available commands' },
+  { name: 'ping', label: 'Ping', description: 'Check bot latency' },
+  { name: 'info', label: 'Info', description: 'Show general information about the bot' },
+]
+
 export default function SettingsPage() {
-  const [guilds, setGuilds] = useState<GuildSummary[]>([])
-  const [selectedGuildId, setSelectedGuildId] = useState('')
+  const { selectedGuildId, loading: guildsLoading } = useGuildContext()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>(null)
   const [language, setLanguage] = useState('en')
-
-  useEffect(() => {
-    async function fetchGuilds() {
-      try {
-        const res = await fetch(`${basePath}/api/v1/guilds`)
-        if (res.ok) {
-          const data: GuildSummary[] = await res.json()
-          setGuilds(data)
-          if (data.length > 0) setSelectedGuildId(data[0].id)
-        }
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchGuilds()
-  }, [])
+  const [disabledCommands, setDisabledCommands] = useState<string[]>([])
 
   useEffect(() => {
     if (!selectedGuildId) return
@@ -43,6 +37,7 @@ export default function SettingsPage() {
         if (res.ok) {
           const data: GuildConfig = await res.json()
           setLanguage(data.language ?? 'en')
+          setDisabledCommands(data.disabledCommands ?? [])
         }
       } finally {
         setLoading(false)
@@ -50,6 +45,12 @@ export default function SettingsPage() {
     }
     fetchConfig()
   }, [selectedGuildId])
+
+  const toggleCommand = useCallback((name: string) => {
+    setDisabledCommands((prev) =>
+      prev.includes(name) ? prev.filter((c) => c !== name) : [...prev, name],
+    )
+  }, [])
 
   const handleSave = useCallback(async () => {
     if (!selectedGuildId) return
@@ -60,7 +61,7 @@ export default function SettingsPage() {
       const res = await fetch(`${basePath}/api/v1/guilds/${selectedGuildId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language }),
+        body: JSON.stringify({ language, disabledCommands }),
       })
 
       if (res.ok) {
@@ -74,36 +75,14 @@ export default function SettingsPage() {
     } finally {
       setSaving(false)
     }
-  }, [selectedGuildId, language])
+  }, [selectedGuildId, language, disabledCommands])
 
   return (
     <div className="content-wrapper">
       <PageBreadcrumb title="General Settings" subTitle1="Dashboard" subTitle2="Settings" />
 
       <div className="main-content">
-        <Card className="mb-4">
-          <Card.Body>
-            <Form.Group>
-              <Form.Label className="fw-semibold">Select Guild</Form.Label>
-              {loading && guilds.length === 0 ? (
-                <div className="text-muted">Loading guilds...</div>
-              ) : (
-                <Form.Select
-                  value={selectedGuildId}
-                  onChange={(e) => setSelectedGuildId(e.target.value)}
-                >
-                  {guilds.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name}
-                    </option>
-                  ))}
-                </Form.Select>
-              )}
-            </Form.Group>
-          </Card.Body>
-        </Card>
-
-        {loading ? (
+        {guildsLoading || loading ? (
           <div className="text-center py-4">
             <Spinner animation="border" size="sm" className="me-2" />
             Loading settings...
@@ -137,6 +116,43 @@ export default function SettingsPage() {
                     Bot language for this guild.
                   </Form.Text>
                 </Form.Group>
+              </Card.Body>
+            </Card>
+
+            <Card className="mb-4">
+              <Card.Header>
+                <div className="d-flex align-items-center">
+                  <svg className="sa-icon sa-icon-lg sa-icon-primary me-2">
+                    <use href={`${basePath}/icons/sprite.svg#terminal`} />
+                  </svg>
+                  <h5 className="mb-0">Commands</h5>
+                </div>
+              </Card.Header>
+              <Card.Body>
+                <p className="text-muted mb-3">
+                  Enable or disable base commands for this guild. Disabled commands will not
+                  respond when used.
+                </p>
+                {BASE_COMMANDS.map((cmd) => {
+                  const enabled = !disabledCommands.includes(cmd.name)
+                  return (
+                    <div
+                      key={cmd.name}
+                      className="d-flex align-items-center justify-content-between py-2 border-bottom"
+                    >
+                      <div>
+                        <span className="fw-semibold">/{cmd.label}</span>
+                        <span className="text-muted ms-2">{cmd.description}</span>
+                      </div>
+                      <Form.Check
+                        type="switch"
+                        id={`cmd-toggle-${cmd.name}`}
+                        checked={enabled}
+                        onChange={() => toggleCommand(cmd.name)}
+                      />
+                    </div>
+                  )
+                })}
               </Card.Body>
             </Card>
 
