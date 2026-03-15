@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
 import DiscordProvider from 'next-auth/providers/discord'
 
+const isProduction = process.env['NODE_ENV'] === 'production'
+
 export const authOptions: NextAuthOptions = {
   providers: [
     DiscordProvider({
@@ -15,6 +17,19 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt',
     maxAge: 7 * 24 * 60 * 60,
+  },
+  cookies: {
+    sessionToken: {
+      name: isProduction
+        ? '__Secure-next-auth.session-token'
+        : 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: isProduction,
+      },
+    },
   },
   pages: {
     signIn: '/auth/login',
