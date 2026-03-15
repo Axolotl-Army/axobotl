@@ -1,8 +1,17 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Card, Table, Pagination } from 'react-bootstrap'
+import { Col, Row } from 'react-bootstrap'
+import {
+  createColumnHelper,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from '@tanstack/react-table'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import DataTable from '@/components/table/DataTable'
+import TablePagination from '@/components/table/TablePagination'
 import { basePath } from '@/helpers'
 
 type LogEntry = {
@@ -23,121 +32,156 @@ type PaginatedResponse = {
   }
 }
 
+const PAGE_SIZE_OPTIONS = [10, 15, 25, 50, 100]
+const DEFAULT_PAGE_SIZE = 20
+
+const columnHelper = createColumnHelper<LogEntry>()
+
 export default function LogsPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const page = parseInt(searchParams.get('page') ?? '1', 10)
+  const serverPage = parseInt(searchParams.get('page') ?? '1', 10)
+  const serverPageSize = parseInt(
+    searchParams.get('limit') ?? String(DEFAULT_PAGE_SIZE),
+    10,
+  )
 
   const [data, setData] = useState<PaginatedResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => {
     async function fetchData() {
       setLoading(true)
       try {
-        const res = await fetch(`${basePath}/api/v1/logs?page=${page}&limit=20`)
+        const res = await fetch(
+          `${basePath}/api/v1/logs?page=${serverPage}&limit=${serverPageSize}`,
+        )
         if (res.ok) setData(await res.json())
       } finally {
         setLoading(false)
       }
     }
     fetchData()
-  }, [page])
+  }, [serverPage, serverPageSize])
 
-  const goToPage = (p: number) => {
-    router.push(`/dashboard/logs?page=${p}`)
-  }
+  const navigateTo = useCallback(
+    (page: number, limit: number) => {
+      router.push(`/dashboard/logs?page=${page}&limit=${limit}`)
+    },
+    [router],
+  )
 
-  const pagination = data?.pagination
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor('command', {
+        header: 'Command',
+        cell: ({ getValue }) => <code>/{getValue()}</code>,
+      }),
+      columnHelper.accessor('username', {
+        header: 'User',
+      }),
+      columnHelper.accessor('guildId', {
+        header: 'Guild ID',
+        cell: ({ getValue }) => <code className="fs-xs">{getValue()}</code>,
+      }),
+      columnHelper.accessor('successful', {
+        header: 'Status',
+        cell: ({ getValue }) => (
+          <span className={`badge bg-${getValue() ? 'success' : 'danger'}`}>
+            {getValue() ? 'OK' : 'Error'}
+          </span>
+        ),
+      }),
+      columnHelper.accessor('createdAt', {
+        header: 'Time',
+        cell: ({ getValue }) => new Date(getValue()).toLocaleString(),
+      }),
+    ],
+    [],
+  )
+
   const logs = data?.logs ?? []
+  const pagination = data?.pagination
+
+  const table = useReactTable({
+    data: logs,
+    columns,
+    state: { globalFilter },
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    globalFilterFn: 'includesString',
+  })
+
+  const totalItems = pagination?.totalEntries ?? 0
+  const pageCount = pagination?.total ?? 0
+  const pageIndex = serverPage - 1
+  const start = totalItems === 0 ? 0 : pageIndex * serverPageSize + 1
+  const end = Math.min(start + serverPageSize - 1, totalItems)
 
   return (
     <div className="content-wrapper">
       <PageBreadcrumb title="Command Logs" subTitle1="Dashboard" subTitle2="Logs" />
 
       <div className="main-content">
-        <Card>
-          <Card.Header className="d-flex justify-content-between align-items-center">
-            <h5 className="mb-0">Command Logs</h5>
-            {pagination && (
-              <span className="text-muted">{pagination.totalEntries} total entries</span>
-            )}
-          </Card.Header>
-          <Card.Body className="p-0">
-            <Table responsive className="mb-0">
-              <thead>
-                <tr>
-                  <th>Command</th>
-                  <th>User</th>
-                  <th>Guild ID</th>
-                  <th>Status</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-4">
-                      Loading...
-                    </td>
-                  </tr>
-                ) : logs.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-4 text-muted">
-                      No logs available
-                    </td>
-                  </tr>
-                ) : (
-                  logs.map((log) => (
-                    <tr key={log.id}>
-                      <td>
-                        <code>/{log.command}</code>
-                      </td>
-                      <td>{log.username}</td>
-                      <td>
-                        <code className="fs-xs">{log.guildId}</code>
-                      </td>
-                      <td>
-                        <span className={`badge bg-${log.successful ? 'success' : 'danger'}`}>
-                          {log.successful ? 'OK' : 'Error'}
-                        </span>
-                      </td>
-                      <td>{new Date(log.createdAt).toLocaleString()}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </Table>
-          </Card.Body>
-          {pagination && pagination.total > 1 && (
-            <Card.Footer className="d-flex justify-content-center">
-              <Pagination className="mb-0">
-                <Pagination.Prev
-                  disabled={page <= 1}
-                  onClick={() => goToPage(page - 1)}
-                />
-                {Array.from({ length: Math.min(pagination.total, 10) }, (_, i) => {
-                  const start = Math.max(1, Math.min(page - 4, pagination.total - 9))
-                  const p = start + i
-                  if (p > pagination.total) return null
-                  return (
-                    <Pagination.Item
-                      key={p}
-                      active={p === page}
-                      onClick={() => goToPage(p)}
-                    >
-                      {p}
-                    </Pagination.Item>
-                  )
-                })}
-                <Pagination.Next
-                  disabled={page >= pagination.total}
-                  onClick={() => goToPage(page + 1)}
-                />
-              </Pagination>
-            </Card.Footer>
-          )}
-        </Card>
+        <Row>
+          <Col lg={12}>
+            <div className="st-wrapper">
+              <div className="st-toolbar row mb-4">
+                <Col xs={12} sm={6} lg={6} xl={5} xxl={4} className="order-1 order-sm-0 mt-4 mt-sm-0">
+                  <div className="st-search-wrapper">
+                    <div className="input-group flex-nowrap" role="search">
+                      <span className="input-group-text px-2">
+                        <svg className="sa-icon sa-bold">
+                          <use href={`${basePath}/icons/sprite.svg#search`}></use>
+                        </svg>
+                      </span>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Search..."
+                        onChange={(e) => setGlobalFilter(e.target.value)}
+                        autoComplete="off"
+                      />
+                    </div>
+                  </div>
+                </Col>
+                <div className="col d-flex justify-content-end gap-2"></div>
+              </div>
+              {loading ? (
+                <div className="text-center py-4">Loading...</div>
+              ) : (
+                <>
+                  <DataTable<LogEntry>
+                    table={table}
+                    emptyMessage="No logs available"
+                  />
+                  {pageCount > 0 && (
+                    <TablePagination
+                      totalItems={totalItems}
+                      start={start}
+                      end={end}
+                      itemsName="entries"
+                      showInfo
+                      previousPage={() => navigateTo(serverPage - 1, serverPageSize)}
+                      canPreviousPage={serverPage > 1}
+                      pageCount={pageCount}
+                      pageIndex={pageIndex}
+                      setPageIndex={(i) => navigateTo(i + 1, serverPageSize)}
+                      nextPage={() => navigateTo(serverPage + 1, serverPageSize)}
+                      canNextPage={serverPage < pageCount}
+                      pageSize={serverPageSize}
+                      onPageSizeChange={(size) => navigateTo(1, size)}
+                      showPageLimit
+                    />
+                  )}
+                </>
+              )}
+            </div>
+          </Col>
+        </Row>
       </div>
     </div>
   )

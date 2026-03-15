@@ -1,7 +1,15 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { Col, Row, Card, Table, Badge } from 'react-bootstrap'
+import { useEffect, useMemo, useState } from 'react'
+import { Col, Row, Card, Badge } from 'react-bootstrap'
+import {
+  createColumnHelper,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from '@tanstack/react-table'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import DataTable from '@/components/table/DataTable'
 import { basePath } from '@/helpers'
 
 type StatsData = {
@@ -17,10 +25,13 @@ type LogEntry = {
   createdAt: string
 }
 
+const columnHelper = createColumnHelper<LogEntry>()
+
 export default function DashboardOverview() {
   const [stats, setStats] = useState<StatsData | null>(null)
   const [recentLogs, setRecentLogs] = useState<LogEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [globalFilter, setGlobalFilter] = useState('')
 
   useEffect(() => {
     async function fetchData() {
@@ -38,6 +49,42 @@ export default function DashboardOverview() {
     fetchData()
   }, [])
 
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor('command', {
+        header: 'Command',
+        cell: ({ getValue }) => <code>/{getValue()}</code>,
+      }),
+      columnHelper.accessor('username', {
+        header: 'User',
+      }),
+      columnHelper.accessor('successful', {
+        header: 'Status',
+        cell: ({ getValue }) => (
+          <Badge bg={getValue() ? 'success' : 'danger'}>
+            {getValue() ? 'OK' : 'Error'}
+          </Badge>
+        ),
+      }),
+      columnHelper.accessor('createdAt', {
+        header: 'Time',
+        cell: ({ getValue }) => new Date(getValue()).toLocaleString(),
+      }),
+    ],
+    [],
+  )
+
+  const table = useReactTable({
+    data: recentLogs,
+    columns,
+    state: { globalFilter },
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    globalFilterFn: 'includesString',
+  })
+
   return (
     <div className="content-wrapper">
       <PageBreadcrumb title="Overview" subTitle1="Dashboard" />
@@ -49,9 +96,7 @@ export default function DashboardOverview() {
               <Card.Body className="d-flex align-items-center">
                 <div className="flex-grow-1">
                   <h6 className="text-muted text-uppercase mb-2">Guilds</h6>
-                  <h2 className="mb-0">
-                    {loading ? '...' : (stats?.guildCount ?? 0)}
-                  </h2>
+                  <h2 className="mb-0">{loading ? '...' : (stats?.guildCount ?? 0)}</h2>
                 </div>
                 <div>
                   <svg className="sa-icon sa-icon-3x sa-icon-primary">
@@ -66,9 +111,7 @@ export default function DashboardOverview() {
               <Card.Body className="d-flex align-items-center">
                 <div className="flex-grow-1">
                   <h6 className="text-muted text-uppercase mb-2">Total Commands</h6>
-                  <h2 className="mb-0">
-                    {loading ? '...' : (stats?.totalCommands ?? 0)}
-                  </h2>
+                  <h2 className="mb-0">{loading ? '...' : (stats?.totalCommands ?? 0)}</h2>
                 </div>
                 <div>
                   <svg className="sa-icon sa-icon-3x sa-icon-primary">
@@ -83,51 +126,37 @@ export default function DashboardOverview() {
         <Card>
           <Card.Header className="d-flex justify-content-between align-items-center">
             <h5 className="mb-0">Recent Commands</h5>
-            <a href="/dashboard/logs" className="btn btn-sm btn-outline-primary">
-              View All
-            </a>
+            <div className="d-flex align-items-center gap-2">
+              <div className="st-search-wrapper">
+                <div className="input-group input-group-sm flex-nowrap" role="search">
+                  <span className="input-group-text px-2">
+                    <svg className="sa-icon sa-bold">
+                      <use href={`${basePath}/icons/sprite.svg#search`}></use>
+                    </svg>
+                  </span>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search..."
+                    onChange={(e) => setGlobalFilter(e.target.value)}
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+              <a href="/dashboard/logs" className="btn btn-sm btn-outline-primary">
+                View All
+              </a>
+            </div>
           </Card.Header>
           <Card.Body className="p-0">
-            <Table responsive className="mb-0">
-              <thead>
-                <tr>
-                  <th>Command</th>
-                  <th>User</th>
-                  <th>Status</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={4} className="text-center py-4">
-                      Loading...
-                    </td>
-                  </tr>
-                ) : recentLogs.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="text-center py-4 text-muted">
-                      No commands logged yet
-                    </td>
-                  </tr>
-                ) : (
-                  recentLogs.map((log) => (
-                    <tr key={log.id}>
-                      <td>
-                        <code>/{log.command}</code>
-                      </td>
-                      <td>{log.username}</td>
-                      <td>
-                        <Badge bg={log.successful ? 'success' : 'danger'}>
-                          {log.successful ? 'OK' : 'Error'}
-                        </Badge>
-                      </td>
-                      <td>{new Date(log.createdAt).toLocaleString()}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </Table>
+            {loading ? (
+              <div className="text-center py-4">Loading...</div>
+            ) : (
+              <DataTable<LogEntry>
+                table={table}
+                emptyMessage="No commands logged yet"
+              />
+            )}
           </Card.Body>
         </Card>
       </div>
