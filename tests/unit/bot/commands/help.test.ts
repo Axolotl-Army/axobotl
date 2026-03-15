@@ -8,12 +8,10 @@ const FLAGS_COMPONENTS_V2_EPHEMERAL = 32832;
 const TYPE_CONTAINER = 17;
 const TYPE_TEXT_DISPLAY = 10;
 const TYPE_SEPARATOR = 14;
-const TYPE_SECTION = 9;
 
 type AnyBuilder = {
   data: Record<string, unknown>;
   components?: AnyBuilder[];
-  accessory?: AnyBuilder;
 };
 
 function createInteraction() {
@@ -93,45 +91,41 @@ describe('/help command', () => {
       expect(secondChild.data.type).toBe(TYPE_SEPARATOR);
     });
 
-    it('container includes a section for /ping with its description', async () => {
+    it('contains a text display for /ping with its description', async () => {
       const interaction = createInteraction();
       await command.execute(interaction as never);
 
       const container = getContainerBuilder(interaction);
-      const sections = container.components!.filter((c) => c.data.type === TYPE_SECTION);
-      const allSectionText = sections
-        .flatMap((s) => s.components ?? [])
-        .filter((c) => c.data.type === TYPE_TEXT_DISPLAY)
-        .map((c) => c.data.content as string)
-        .join('\n');
+      const textDisplays = container.components!.filter((c) => c.data.type === TYPE_TEXT_DISPLAY);
+      const allText = textDisplays.map((c) => c.data.content as string).join('\n');
 
-      expect(allSectionText).toContain('/ping');
-      expect(allSectionText).toContain('Check bot latency');
+      expect(allText).toContain('/ping');
+      expect(allText).toContain('Check bot latency');
     });
 
-    it('container includes a section for /help with its description', async () => {
+    it('contains a text display for /help with its description', async () => {
       const interaction = createInteraction();
       await command.execute(interaction as never);
 
       const container = getContainerBuilder(interaction);
-      const sections = container.components!.filter((c) => c.data.type === TYPE_SECTION);
-      const allSectionText = sections
-        .flatMap((s) => s.components ?? [])
-        .filter((c) => c.data.type === TYPE_TEXT_DISPLAY)
-        .map((c) => c.data.content as string)
-        .join('\n');
+      const textDisplays = container.components!.filter((c) => c.data.type === TYPE_TEXT_DISPLAY);
+      const allText = textDisplays.map((c) => c.data.content as string).join('\n');
 
-      expect(allSectionText).toContain('/help');
-      expect(allSectionText).toContain('Show this help message');
+      expect(allText).toContain('/help');
+      expect(allText).toContain('Show this help message');
     });
 
-    it('container includes sections for all 6 commands', async () => {
+    it('contains text displays for all 6 commands', async () => {
       const interaction = createInteraction();
       await command.execute(interaction as never);
 
       const container = getContainerBuilder(interaction);
-      const sections = container.components!.filter((c) => c.data.type === TYPE_SECTION);
-      expect(sections).toHaveLength(6);
+      // Title + Separator + 6 command text displays = 8 children
+      // Filter out title (starts with #) and separator
+      const commandTexts = container.components!.filter(
+        (c) => c.data.type === TYPE_TEXT_DISPLAY && !(c.data.content as string).startsWith('#'),
+      );
+      expect(commandTexts).toHaveLength(6);
     });
   });
 });
