@@ -5,7 +5,7 @@ import '../shared/models'; // register associations
 import type { SlashCommand } from './types';
 import { registerPlugin } from './plugins';
 
-// Base commands (always registered globally)
+// Base commands (registered per-guild, can be disabled via dashboard)
 import { command as pingCommand } from './commands/ping';
 import { command as helpCommand } from './commands/help';
 import { command as infoCommand } from './commands/info';
@@ -52,7 +52,7 @@ const client = new Client({
 
 // ── Command registries ──────────────────────────────────────────────
 
-// Base commands only (for global registration)
+// Base commands (for per-guild registration)
 const baseCommands = new Map<string, SlashCommand>([
   ['ping', pingCommand],
   ['help', helpCommand],

@@ -1,13 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Must mock GuildPlugin before importing PluginCache — the model
+// Must mock models before importing PluginCache — the model
 // module-level init throws without DATABASE_URL.
 const mockFindAll = vi.fn();
+const mockGuildFindAll = vi.fn().mockResolvedValue([]);
 
 vi.mock('../../../../src/shared/models/GuildPlugin', () => ({
   GuildPlugin: {
     findAll: (...a: unknown[]) => mockFindAll(...a),
   },
+}));
+
+vi.mock('../../../../src/shared/models', () => ({
+  Guild: {
+    findAll: (...a: unknown[]) => mockGuildFindAll(...a),
+  },
+  CommandLog: {},
+  UserLevel: {},
+  GuildPlugin: {
+    findAll: (...a: unknown[]) => mockFindAll(...a),
+  },
+  LevelRole: {},
 }));
 
 import { PluginCache } from '../../../../src/bot/plugins/pluginCache';

@@ -1,9 +1,15 @@
 import { Events, Client, ActivityType } from 'discord.js';
 import type { BotEvent, SlashCommand } from '../types';
-import { registerCommands } from '../registerCommands';
 import { Guild } from '../../shared/models';
 import { GuildPlugin } from '../../shared/models/GuildPlugin';
-import { pluginCache, syncAllGuildCommands, syncGuildCommands, getAllPlugins } from '../plugins';
+import {
+  pluginCache,
+  syncAllGuildCommands,
+  syncGuildCommands,
+  clearGlobalCommands,
+  setBaseCommands,
+  getAllPlugins,
+} from '../plugins';
 
 function createEvent(baseCommands: Map<string, SlashCommand>): BotEvent {
   return {
@@ -15,20 +21,18 @@ function createEvent(baseCommands: Map<string, SlashCommand>): BotEvent {
       console.log(`[Bot] Serving ${client.guilds.cache.size} guild(s)`);
       client.user.setActivity('your servers', { type: ActivityType.Watching });
 
-      // Register base commands + sync guilds to DB
+      // Make base commands available to the command sync system
+      setBaseCommands(baseCommands);
+
+      // Clear any leftover global commands + sync guilds to DB
       await Promise.all([
-        registerCommands(
-          client.token!,
-          client.application.id,
-          baseCommands,
-          process.env['GUILD_ID'],
-        ),
+        clearGlobalCommands(client.token!, client.application.id),
         syncGuilds(client),
       ]).catch((err: unknown) => {
         console.error('[Bot] Startup task failed:', err);
       });
 
-      // Migrate existing leveling config, then sync plugin commands
+      // Migrate existing leveling config, then sync all commands per-guild
       await migrateExistingLevelingConfig();
       await pluginCache.refresh();
       await syncAllGuildCommands(client);
@@ -46,7 +50,7 @@ function createEvent(baseCommands: Map<string, SlashCommand>): BotEvent {
               );
             }
           } catch (err) {
-            console.error('[Plugins] Cache refresh failed:', err);
+            console.error('[Commands] Cache refresh failed:', err);
           }
         })();
       }, 60_000);

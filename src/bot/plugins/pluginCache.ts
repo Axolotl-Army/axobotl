@@ -1,4 +1,5 @@
 import { GuildPlugin } from '../../shared/models/GuildPlugin';
+import { Guild } from '../../shared/models';
 
 interface CachedPluginState {
   enabled: boolean;
@@ -9,6 +10,7 @@ type GuildPluginMap = Map<string, CachedPluginState>;
 
 export class PluginCache {
   private cache = new Map<string, GuildPluginMap>();
+  private disabledCommandsCache = new Map<string, string>();
   private lastRefresh = 0;
   private readonly ttl: number;
   private refreshPromise: Promise<string[]> | null = null;
@@ -37,19 +39,25 @@ export class PluginCache {
   }
 
   async refresh(): Promise<string[]> {
-    const previousState = new Map<string, Map<string, boolean>>();
+    const previousPluginState = new Map<string, Map<string, boolean>>();
     for (const [guildId, plugins] of this.cache) {
       const pMap = new Map<string, boolean>();
       for (const [pluginId, state] of plugins) {
         pMap.set(pluginId, state.enabled);
       }
-      previousState.set(guildId, pMap);
+      previousPluginState.set(guildId, pMap);
     }
+    const previousDisabledCmds = new Map(this.disabledCommandsCache);
 
     this.cache.clear();
+    this.disabledCommandsCache.clear();
 
-    const rows = await GuildPlugin.findAll();
-    for (const row of rows) {
+    const [pluginRows, guilds] = await Promise.all([
+      GuildPlugin.findAll(),
+      Guild.findAll({ attributes: ['id', 'disabledCommands'] }),
+    ]);
+
+    for (const row of pluginRows) {
       if (!this.cache.has(row.guildId)) {
         this.cache.set(row.guildId, new Map());
       }
@@ -59,28 +67,43 @@ export class PluginCache {
       });
     }
 
+    for (const guild of guilds) {
+      const key = JSON.stringify((guild.disabledCommands ?? []).sort());
+      this.disabledCommandsCache.set(guild.id, key);
+    }
+
     this.lastRefresh = Date.now();
 
-    const changedGuilds: string[] = [];
-    const allGuildIds = new Set([...previousState.keys(), ...this.cache.keys()]);
+    const changedGuilds = new Set<string>();
+
+    // Detect plugin changes
+    const allGuildIds = new Set([...previousPluginState.keys(), ...this.cache.keys()]);
     for (const guildId of allGuildIds) {
-      const prev = previousState.get(guildId);
+      const prev = previousPluginState.get(guildId);
       const curr = this.cache.get(guildId);
       if (!prev && !curr) continue;
       if (!prev || !curr) {
-        changedGuilds.push(guildId);
+        changedGuilds.add(guildId);
         continue;
       }
       const allPluginIds = new Set([...prev.keys(), ...curr.keys()]);
       for (const pluginId of allPluginIds) {
         if (prev.get(pluginId) !== curr.get(pluginId)?.enabled) {
-          changedGuilds.push(guildId);
+          changedGuilds.add(guildId);
           break;
         }
       }
     }
 
-    return changedGuilds;
+    // Detect disabledCommands changes
+    const allCmdGuildIds = new Set([...previousDisabledCmds.keys(), ...this.disabledCommandsCache.keys()]);
+    for (const guildId of allCmdGuildIds) {
+      if (previousDisabledCmds.get(guildId) !== this.disabledCommandsCache.get(guildId)) {
+        changedGuilds.add(guildId);
+      }
+    }
+
+    return [...changedGuilds];
   }
 
   invalidate(): void {
