@@ -14,7 +14,7 @@ const CLEANUP_INTERVAL = 60_000;
 function getClientIp(request: NextRequest): string {
   return (
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-    request.ip ??
+    request.headers.get('x-real-ip') ??
     'unknown'
   );
 }
