@@ -10,7 +10,6 @@ import {
   LayoutOffcanvasStatesType,
   OffcanvasControlType,
 } from '@/types/layout'
-import { basePath } from '@/helpers'
 
 const INIT_STATE: LayoutState = {
   theme: 'dark',
@@ -22,7 +21,6 @@ const INIT_STATE: LayoutState = {
   darkNavigation: true,
   colorblindMode: false,
   highContrastMode: false,
-  selectedTheme: 'lunar',
 }
 
 const LayoutContext = createContext<LayoutType | undefined>(undefined)
@@ -73,23 +71,8 @@ export const LayoutProvider = ({ children }: ChildrenType) => {
     [setSettings],
   )
 
-  const changeThemeStyle = useCallback(
-    (themeId: string) => {
-      const themeStyleEl = document.getElementById('app-theme') as HTMLLinkElement
-      if (themeId === 'default') {
-        if (themeStyleEl) themeStyleEl.href = ''
-        setSettings((prev) => ({ ...prev, selectedTheme: themeId as LayoutState['selectedTheme'] }))
-        return
-      }
-      if (themeStyleEl) themeStyleEl.href = themeId ? `${basePath}/css/${themeId}.css` : ''
-      setSettings((prev) => ({ ...prev, selectedTheme: themeId as LayoutState['selectedTheme'] }))
-    },
-    [setSettings],
-  )
-
   const reset = useCallback(() => {
     const htmlRoot = document.documentElement
-    const themeStyleEl = document.getElementById('app-theme') as HTMLLinkElement
     const classesToRemove = [
       'set-header-fixed',
       'set-nav-full',
@@ -101,7 +84,6 @@ export const LayoutProvider = ({ children }: ChildrenType) => {
       'set-high-contrast-mode',
     ]
     classesToRemove.forEach((cls) => htmlRoot.classList.remove(cls))
-    if (themeStyleEl) themeStyleEl.href = ''
     setSettings(INIT_STATE)
     localStorage.removeItem('panelStates')
   }, [setSettings])
@@ -142,13 +124,6 @@ export const LayoutProvider = ({ children }: ChildrenType) => {
 
   useEffect(() => {
     toggleAttribute('data-bs-theme', settings.theme)
-    const themeStyleEl = document.getElementById('app-theme') as HTMLLinkElement | null
-    if (themeStyleEl && settings.selectedTheme === 'default') {
-      themeStyleEl.href = ''
-    }
-    if (themeStyleEl && settings.selectedTheme !== 'default') {
-      themeStyleEl.href = settings.selectedTheme ? `${basePath}/css/${settings.selectedTheme}.css` : ''
-    }
     Object.entries(settings).forEach(([key, val]) => {
       if (typeof val === 'boolean') {
         const className = getClassNameForSetting(key as keyof LayoutState)
@@ -157,7 +132,6 @@ export const LayoutProvider = ({ children }: ChildrenType) => {
     })
   }, [
     settings.theme,
-    settings.selectedTheme,
     settings.headerFixed,
     settings.navFull,
     settings.navFixed,
@@ -173,14 +147,13 @@ export const LayoutProvider = ({ children }: ChildrenType) => {
       ...settings,
       settings,
       changeTheme,
-      changeThemeStyle,
       toggleSetting,
       reset,
       showBackdrop,
       hideBackdrop,
       customizer,
     }),
-    [settings, changeTheme, changeThemeStyle, toggleSetting, reset, customizer],
+    [settings, changeTheme, toggleSetting, reset, customizer],
   )
 
   return <LayoutContext.Provider value={contextValue}>{children}</LayoutContext.Provider>

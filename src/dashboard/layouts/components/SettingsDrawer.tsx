@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import { useLayoutContext } from '@/context/useLayoutContext'
 import { Offcanvas, OffcanvasBody, OffcanvasHeader } from 'react-bootstrap'
 import { basePath } from '@/helpers'
@@ -15,9 +15,7 @@ const SettingsDrawer = () => {
     darkNavigation,
     colorblindMode,
     highContrastMode,
-    selectedTheme,
     toggleSetting,
-    changeThemeStyle,
     reset,
     customizer,
   } = useLayoutContext()
@@ -27,59 +25,6 @@ const SettingsDrawer = () => {
       toggleSetting('navFull', true)
     }
   }, [navCollapsed])
-
-  const themes = [
-    {
-      id: 'default',
-      name: 'Default',
-      gradient: 'linear-gradient(135deg, #FF6A00, #F6A2D5, #4C91BF, #7A8B92, #AB7C9A)',
-    },
-    {
-      id: 'nebula',
-      name: 'Nebula',
-      gradient: 'linear-gradient(135deg, #2a7dbf, #2a9d8f, #766cbc, #f4a261, #e76f51)',
-    },
-    {
-      id: 'olive',
-      name: 'Olive',
-      gradient: 'linear-gradient(135deg, #556B2F, #6B8E23, #8B9A3D, #A9B83E, #BDB76B)',
-    },
-    {
-      id: 'solar',
-      name: 'Solar',
-      gradient: 'linear-gradient(135deg, #FF8C00, #FFD700, #FF4500, #F1C40F, #F39C12)',
-    },
-    {
-      id: 'lunar',
-      name: 'Lunar',
-      gradient: 'linear-gradient(135deg, #2C3E50, #34495E, #5F6368, #AAB7B8, #E6E6FA, #F1F3F4)',
-    },
-    {
-      id: 'night',
-      name: 'Night',
-      gradient: 'linear-gradient(135deg, #1e2a47, #2b3654, #363d6c, #4f5d79, #717b91, #b6c4d1)',
-    },
-    {
-      id: 'aurora',
-      name: 'Aurora',
-      gradient: 'linear-gradient(135deg, #337e7e, #527a4a, #63279b, #7FFF00, #87CEFA, #B0E0E6)',
-    },
-    {
-      id: 'earth',
-      name: 'Earth',
-      gradient: 'linear-gradient(135deg, #2198f3, #3173a5, #3f6888, #618d48, #52bf11)',
-    },
-    {
-      id: 'flare',
-      name: 'Flare',
-      gradient: 'linear-gradient(135deg, #FF4500, #FF6347, #F44336, #D32F2F, #B71C1C)',
-    },
-    {
-      id: 'storm',
-      name: 'Storm',
-      gradient: 'linear-gradient(135deg, #2F4F4F, #3B5360, #4B6A6E, #5A7980, #A9A9A9, #FFD700)',
-    },
-  ]
 
   return (
     <Offcanvas
@@ -216,27 +161,6 @@ const SettingsDrawer = () => {
             <label className="form-check-label" htmlFor="actionHighContrastMode">
               High Contrast Mode
             </label>
-          </div>
-        </div>
-
-        <div className="mod-status app-themes" data-prefix="Themes">
-          <div className="clickable-boxes">
-            {themes.map((theme, index) => (
-              <React.Fragment key={theme.id}>
-                <input
-                  type="radio"
-                  id={`option${index}`}
-                  name="options"
-                  checked={selectedTheme === theme.id}
-                  onChange={() => changeThemeStyle(theme.id)}
-                />
-                <label
-                  htmlFor={`option${index}`}
-                  data-prefix={theme.name}
-                  style={{ background: theme.gradient }}
-                ></label>
-              </React.Fragment>
-            ))}
           </div>
         </div>
 
