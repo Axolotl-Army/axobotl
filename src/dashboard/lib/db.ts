@@ -37,3 +37,8 @@ export async function getLevelRole() {
   const m = await getModels()
   return m.LevelRole
 }
+
+export async function getUserLevel() {
+  const m = await getModels()
+  return m.UserLevel
+}

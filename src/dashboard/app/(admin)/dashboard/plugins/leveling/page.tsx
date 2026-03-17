@@ -1,13 +1,16 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
-import { Card, Col, Row, Form, Button, Spinner, Table } from 'react-bootstrap'
+import { Card, Col, Row, Form, Button, Spinner } from 'react-bootstrap'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import { basePath } from '@/helpers'
 import { useGuildContext } from '@/context/useGuildContext'
+import NotificationsCard from './NotificationsCard'
+import XpSettingsCard from './XpSettingsCard'
+import RoleRewardsCard from './RoleRewardsCard'
 
 type DiscordChannel = { id: string; name: string }
 type DiscordRole = { id: string; name: string; color: number }
-type LevelRoleEntry = { level: number; roleId: string }
+type LevelRoleEntry = { level: number; roleId: string; cumulative: boolean }
 type SaveStatus = { type: 'success' | 'error'; message: string } | null
 
 type LevelingConfig = {
@@ -53,10 +56,7 @@ export default function LevelingPluginPage() {
 
   // Role rewards
   const [levelRoles, setLevelRoles] = useState<LevelRoleEntry[]>([])
-  const [newRoleLevel, setNewRoleLevel] = useState('')
-  const [newRoleId, setNewRoleId] = useState('')
 
-  // Load plugin config when guild changes
   useEffect(() => {
     if (!selectedGuildId) return
 
@@ -182,29 +182,6 @@ export default function LevelingPluginPage() {
     levelRoles,
   ])
 
-  const addRoleReward = useCallback(() => {
-    const level = parseInt(newRoleLevel, 10)
-    if (!level || level < 1 || level > 100 || !newRoleId) return
-    if (levelRoles.some((lr) => lr.level === level)) return
-
-    setLevelRoles((prev) =>
-      [...prev, { level, roleId: newRoleId }].sort((a, b) => a.level - b.level),
-    )
-    setNewRoleLevel('')
-    setNewRoleId('')
-  }, [newRoleLevel, newRoleId, levelRoles])
-
-  const removeRoleReward = useCallback((level: number) => {
-    setLevelRoles((prev) => prev.filter((lr) => lr.level !== level))
-  }, [])
-
-  const previewMessage = (levelUpMessage.trim() || DEFAULT_LEVEL_UP_MESSAGE)
-    .replace(/\{user\}/g, '@User')
-    .replace(/\{level\}/g, '5')
-
-  const roleName = (roleId: string) =>
-    roles.find((r) => r.id === roleId)?.name ?? roleId
-
   return (
     <div className="content-wrapper">
       <PageBreadcrumb title="Leveling" subTitle1="Plugins" subTitle2="Leveling" />
@@ -242,260 +219,38 @@ export default function LevelingPluginPage() {
             {/* Config sections - dimmed when disabled */}
             <div style={{ opacity: enabled ? 1 : 0.5, pointerEvents: enabled ? 'auto' : 'none' }}>
               <Row>
-                {/* Notifications */}
                 <Col lg={6} className="mb-4">
-                  <Card className="h-100">
-                    <Card.Header>
-                      <div className="d-flex align-items-center">
-                        <svg className="sa-icon sa-icon-lg sa-icon-primary me-2">
-                          <use href={`${basePath}/icons/sprite.svg#bell`} />
-                        </svg>
-                        <h5 className="mb-0">Notifications</h5>
-                      </div>
-                    </Card.Header>
-                    <Card.Body>
-                      <Form.Group className="mb-3">
-                        <Form.Label className="fw-semibold">
-                          Level-Up Notification Channel
-                        </Form.Label>
-                        <div className="mb-2">
-                          <Form.Check
-                            type="radio"
-                            id="channel-same"
-                            name="levelUpChannel"
-                            label="Same channel as user's message"
-                            checked={levelUpChannelMode === 'same'}
-                            onChange={() => setLevelUpChannelMode('same')}
-                          />
-                          <Form.Check
-                            type="radio"
-                            id="channel-specific"
-                            name="levelUpChannel"
-                            label="Specific channel"
-                            checked={levelUpChannelMode === 'specific'}
-                            onChange={() => setLevelUpChannelMode('specific')}
-                          />
-                        </div>
-                        {levelUpChannelMode === 'specific' && (
-                          <Form.Select
-                            value={levelUpChannelId}
-                            onChange={(e) => setLevelUpChannelId(e.target.value)}
-                          >
-                            <option value="">-- Select a channel --</option>
-                            {channels.map((ch) => (
-                              <option key={ch.id} value={ch.id}>
-                                #{ch.name}
-                              </option>
-                            ))}
-                          </Form.Select>
-                        )}
-                      </Form.Group>
-
-                      <Form.Group className="mb-3">
-                        <div className="d-flex align-items-center justify-content-between mb-1">
-                          <Form.Label className="fw-semibold mb-0">
-                            Level-Up Message Template
-                          </Form.Label>
-                          <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            onClick={() => setLevelUpMessage(DEFAULT_LEVEL_UP_MESSAGE)}
-                            disabled={levelUpMessage === DEFAULT_LEVEL_UP_MESSAGE}
-                          >
-                            Reset to default
-                          </Button>
-                        </div>
-                        <Form.Control
-                          as="textarea"
-                          rows={2}
-                          placeholder={DEFAULT_LEVEL_UP_MESSAGE}
-                          value={levelUpMessage}
-                          onChange={(e) => setLevelUpMessage(e.target.value)}
-                          maxLength={500}
-                        />
-                        <Form.Text className="text-muted">
-                          Use <code>{'{user}'}</code> and <code>{'{level}'}</code> as
-                          placeholders.
-                        </Form.Text>
-                      </Form.Group>
-
-                      <div className="p-2 rounded bg-dark bg-opacity-25">
-                        <small className="text-muted d-block mb-1">Preview:</small>
-                        <span>{previewMessage}</span>
-                      </div>
-                    </Card.Body>
-                  </Card>
+                  <NotificationsCard
+                    channels={channels}
+                    levelUpMessage={levelUpMessage}
+                    setLevelUpMessage={setLevelUpMessage}
+                    levelUpChannelMode={levelUpChannelMode}
+                    setLevelUpChannelMode={setLevelUpChannelMode}
+                    levelUpChannelId={levelUpChannelId}
+                    setLevelUpChannelId={setLevelUpChannelId}
+                    defaultMessage={DEFAULT_LEVEL_UP_MESSAGE}
+                  />
                 </Col>
 
-                {/* XP Settings */}
                 <Col lg={6} className="mb-4">
-                  <Card className="h-100">
-                    <Card.Header>
-                      <div className="d-flex align-items-center">
-                        <svg className="sa-icon sa-icon-lg sa-icon-primary me-2">
-                          <use href={`${basePath}/icons/sprite.svg#trending-up`} />
-                        </svg>
-                        <h5 className="mb-0">XP Settings</h5>
-                      </div>
-                    </Card.Header>
-                    <Card.Body>
-                      <Row>
-                        <Col sm={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label className="fw-semibold">Min XP per Message</Form.Label>
-                            <Form.Control
-                              type="number"
-                              min={1}
-                              max={100}
-                              value={xpMin}
-                              onChange={(e) => setXpMin(parseInt(e.target.value, 10) || 1)}
-                            />
-                          </Form.Group>
-                        </Col>
-                        <Col sm={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label className="fw-semibold">Max XP per Message</Form.Label>
-                            <Form.Control
-                              type="number"
-                              min={1}
-                              max={100}
-                              value={xpMax}
-                              onChange={(e) => setXpMax(parseInt(e.target.value, 10) || 1)}
-                            />
-                          </Form.Group>
-                        </Col>
-                      </Row>
-
-                      <Form.Group className="mb-3">
-                        <Form.Label className="fw-semibold">
-                          Cooldown (seconds)
-                        </Form.Label>
-                        <Form.Control
-                          type="number"
-                          min={0}
-                          max={300}
-                          value={Math.round(cooldownMs / 1000)}
-                          onChange={(e) =>
-                            setCooldownMs((parseInt(e.target.value, 10) || 0) * 1000)
-                          }
-                        />
-                        <Form.Text className="text-muted">
-                          Time between XP awards per user (0-300 seconds).
-                        </Form.Text>
-                      </Form.Group>
-
-                      <Form.Group className="mb-3">
-                        <Form.Label className="fw-semibold">
-                          XP Multiplier
-                        </Form.Label>
-                        <Form.Control
-                          type="number"
-                          min={0.1}
-                          max={10}
-                          step={0.1}
-                          value={xpMultiplier}
-                          onChange={(e) =>
-                            setXpMultiplier(parseFloat(e.target.value) || 1.0)
-                          }
-                        />
-                        <Form.Text className="text-muted">
-                          Multiply all XP gains by this value (0.1 - 10.0).
-                        </Form.Text>
-                      </Form.Group>
-                    </Card.Body>
-                  </Card>
+                  <XpSettingsCard
+                    xpMin={xpMin}
+                    setXpMin={setXpMin}
+                    xpMax={xpMax}
+                    setXpMax={setXpMax}
+                    cooldownMs={cooldownMs}
+                    setCooldownMs={setCooldownMs}
+                    xpMultiplier={xpMultiplier}
+                    setXpMultiplier={setXpMultiplier}
+                  />
                 </Col>
               </Row>
 
-              {/* Role Rewards */}
-              <Card className="mb-4">
-                <Card.Header>
-                  <div className="d-flex align-items-center">
-                    <svg className="sa-icon sa-icon-lg sa-icon-primary me-2">
-                      <use href={`${basePath}/icons/sprite.svg#shield`} />
-                    </svg>
-                    <h5 className="mb-0">Role Rewards</h5>
-                  </div>
-                </Card.Header>
-                <Card.Body>
-                  <p className="text-muted mb-3">
-                    Assign roles automatically when members reach specific levels. Rewards
-                    are cumulative.
-                  </p>
-
-                  {levelRoles.length > 0 && (
-                    <Table striped className="mb-3">
-                      <thead>
-                        <tr>
-                          <th>Level</th>
-                          <th>Role</th>
-                          <th style={{ width: '80px' }}></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {levelRoles.map((lr) => (
-                          <tr key={lr.level}>
-                            <td>{lr.level}</td>
-                            <td>{roleName(lr.roleId)}</td>
-                            <td>
-                              <Button
-                                variant="outline-danger"
-                                size="sm"
-                                onClick={() => removeRoleReward(lr.level)}
-                              >
-                                Remove
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  )}
-
-                  <div className="d-flex gap-2 align-items-end">
-                    <Form.Group style={{ width: '100px' }}>
-                      <Form.Label className="fw-semibold small mb-1">Level</Form.Label>
-                      <Form.Control
-                        type="number"
-                        min={1}
-                        max={100}
-                        placeholder="e.g. 5"
-                        value={newRoleLevel}
-                        onChange={(e) => setNewRoleLevel(e.target.value)}
-                      />
-                    </Form.Group>
-
-                    <Form.Group className="flex-grow-1">
-                      <Form.Label className="fw-semibold small mb-1">Role</Form.Label>
-                      <Form.Select
-                        value={newRoleId}
-                        onChange={(e) => setNewRoleId(e.target.value)}
-                      >
-                        <option value="">-- Select a role --</option>
-                        {roles.map((r) => (
-                          <option key={r.id} value={r.id}>
-                            {r.name}
-                          </option>
-                        ))}
-                      </Form.Select>
-                    </Form.Group>
-
-                    <Button
-                      variant="outline-primary"
-                      onClick={addRoleReward}
-                      disabled={
-                        !newRoleLevel ||
-                        !newRoleId ||
-                        levelRoles.some(
-                          (lr) => lr.level === parseInt(newRoleLevel, 10),
-                        )
-                      }
-                    >
-                      Add
-                    </Button>
-                  </div>
-                </Card.Body>
-              </Card>
+              <RoleRewardsCard
+                roles={roles}
+                levelRoles={levelRoles}
+                setLevelRoles={setLevelRoles}
+              />
 
               {/* Save */}
               <div className="d-flex align-items-center gap-3">
