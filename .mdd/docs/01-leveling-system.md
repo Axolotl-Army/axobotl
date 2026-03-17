@@ -6,14 +6,15 @@ depends_on: []
 source_files:
   - src/shared/models/UserLevel.ts
   - src/shared/models/Guild.ts (modified — adds levelUpMessage field)
-  - src/shared/models/index.ts (modified — exports UserLevel)
+  - src/shared/models/LevelRole.ts
+  - src/shared/models/index.ts (modified — exports UserLevel, LevelRole)
   - src/bot/utils/levelUtils.ts
   - src/bot/events/messageCreate.ts
   - src/bot/commands/rank.ts
   - src/bot/commands/leaderboard.ts
   - src/bot/commands/xp.ts
   - src/bot/commands/levelconfig.ts
-  - src/bot/index.ts (modified — registers new commands and messageCreate event)
+  - src/bot/index.ts (modified — registers leveling plugin with commands)
 routes: []
 models:
   - user_levels
@@ -155,9 +156,16 @@ currentLevel = floor((totalXp / 50)^(1 / 1.7385))
 5. The leaderboard only shows users who have at least 1 XP.
 6. All XP management commands must validate that `amount` is a finite, positive (or non-negative for `set`) integer — reject floats or NaN.
 
+## Plugin Integration
+
+As of feature 07, the leveling system is registered as the first plugin. All config (XP range, cooldown, multiplier, level-up message/channel) is stored in `GuildPlugin.config` JSONB. The bot checks `pluginCache.isEnabled()` before awarding XP and reads config via `pluginCache.getConfig()`. Slash commands are registered per-guild only when the plugin is enabled.
+
+Role rewards (LevelRole model) support a `cumulative` flag (feature 08). Non-cumulative roles are replaced on level-up; cumulative roles persist forever.
+
 ## Dependencies
 
-None — this is a self-contained feature.
+- 07-plugin-system (plugin infrastructure, config storage, command sync)
+- 08-cumulative-role-rewards (cumulative flag on LevelRole)
 
 ## Known Issues
 
