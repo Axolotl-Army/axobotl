@@ -18,6 +18,7 @@ export class Guild extends Model<
   declare language: CreationOptional<string>;
   declare levelUpMessage: CreationOptional<string | null>;
   declare levelUpChannelId: CreationOptional<string | null>;
+  declare embedColor: CreationOptional<string | null>;
   declare disabledCommands: CreationOptional<string[]>;
   declare readonly createdAt: CreationOptional<Date>;
   declare readonly updatedAt: CreationOptional<Date>;
@@ -61,6 +62,12 @@ Guild.init(
       allowNull: true,
       defaultValue: null,
       comment: 'Channel for level-up notifications; null = same channel as message',
+    },
+    embedColor: {
+      type: DataTypes.STRING(7),
+      allowNull: true,
+      defaultValue: null,
+      comment: 'Default embed colour as #RRGGBB hex; null = bot default',
     },
     disabledCommands: {
       type: DataTypes.JSONB,
