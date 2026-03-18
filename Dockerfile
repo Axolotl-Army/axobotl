@@ -45,7 +45,6 @@ RUN addgroup --system --gid 1001 appgroup \
 # so the server entry lives under src/dashboard/ within standalone
 COPY --from=builder --chown=appuser:appgroup /app/src/dashboard/.next/standalone/src/dashboard ./
 COPY --from=builder --chown=appuser:appgroup /app/src/dashboard/.next/standalone/node_modules ./node_modules
-COPY --from=builder --chown=appuser:appgroup /app/src/dashboard/.next/standalone/package.json ./package.json
 COPY --from=builder --chown=appuser:appgroup /app/src/dashboard/.next/static ./.next/static
 COPY --from=builder --chown=appuser:appgroup /app/src/dashboard/public ./public
 
