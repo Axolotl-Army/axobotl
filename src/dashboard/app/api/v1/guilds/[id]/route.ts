@@ -14,6 +14,7 @@ const FIELD_LIMITS: Record<UpdatableStringField, number> = {
 }
 
 const VALID_BASE_COMMANDS = ['help', 'ping', 'info']
+const HEX_COLOUR_REGEX = /^#[0-9A-Fa-f]{6}$/
 
 export async function GET(
   _request: NextRequest,
@@ -83,6 +84,26 @@ export async function PATCH(
     }
 
     updates[field] = trimmed
+  }
+
+  if ('embedColor' in body) {
+    const val = body['embedColor']
+
+    if (val === null || val === '') {
+      updates['embedColor'] = null
+    } else if (typeof val !== 'string') {
+      return NextResponse.json(
+        { error: 'embedColor must be a hex colour string (#RRGGBB) or null' },
+        { status: 400 },
+      )
+    } else if (!HEX_COLOUR_REGEX.test(val)) {
+      return NextResponse.json(
+        { error: 'embedColor must be a valid hex colour (#RRGGBB)' },
+        { status: 400 },
+      )
+    } else {
+      updates['embedColor'] = val
+    }
   }
 
   if ('disabledCommands' in body) {
