@@ -8,7 +8,7 @@ config({ path: resolve(__dirname, '../../.env') });
 const nextConfig: NextConfig = {
   output: 'standalone',
   turbopack: {
-    root: __dirname,
+    root: resolve(__dirname, '../..'),
   },
 serverExternalPackages: ['sequelize', 'pg', 'pg-hstore'],
   async headers() {
