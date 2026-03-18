@@ -8,7 +8,7 @@ source_files:
   - src/bot/commands/leaderboard.ts
   - src/bot/commands/help.ts
   - src/bot/events/messageCreate.ts
-  - src/dashboard/app/(admin)/dashboard/config/page.tsx
+  - src/dashboard/app/(admin)/dashboard/settings/page.tsx
   - src/dashboard/app/api/v1/guilds/[id]/route.ts
   - src/dashboard/lib/db.ts
   - src/dashboard/layouts/components/data.ts

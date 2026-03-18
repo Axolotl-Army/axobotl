@@ -8,6 +8,7 @@ import {
   randomXp,
   computeXpUpdate,
   formatLevelUpMessage,
+  computeRoleRewardActions,
 } from '../utils/levelUtils';
 import { pluginCache } from '../plugins';
 
@@ -105,16 +106,28 @@ async function awardRoleRewards(
 
   try {
     const member = await message.guild.members.fetch(userId);
+    const memberRoleIds = new Set(member.roles.cache.keys());
 
-    for (const lr of levelRoles) {
-      if (lr.level <= currentLevel && !member.roles.cache.has(lr.roleId)) {
+    const { toAdd, toRemove } = computeRoleRewardActions(
+      levelRoles.map((lr) => ({ level: lr.level, roleId: lr.roleId, cumulative: lr.cumulative })),
+      currentLevel,
+      memberRoleIds,
+    );
+
+    for (const roleId of toAdd) {
+      try {
+        await member.roles.add(roleId);
+      } catch (err) {
+        console.warn(`[Leveling] Failed to assign role ${roleId} to ${userId}:`, err);
+      }
+    }
+
+    for (const roleId of toRemove) {
+      if (memberRoleIds.has(roleId)) {
         try {
-          await member.roles.add(lr.roleId);
+          await member.roles.remove(roleId);
         } catch (err) {
-          console.warn(
-            `[Leveling] Failed to assign role ${lr.roleId} at level ${lr.level} to ${userId}:`,
-            err,
-          );
+          console.warn(`[Leveling] Failed to remove role ${roleId} from ${userId}:`, err);
         }
       }
     }

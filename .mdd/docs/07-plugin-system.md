@@ -116,13 +116,14 @@ interface LevelingConfig {
 
 ### LevelRole
 
-| Column    | Type         | Constraints              | Description                        |
-|-----------|--------------|--------------------------|------------------------------------|
-| guildId   | STRING(20)   | PK, FK -> Guild          | Discord guild snowflake            |
-| level     | INTEGER      | PK                       | Level at which the role is awarded |
-| roleId    | STRING(20)   | NOT NULL                 | Discord role snowflake             |
-| createdAt | TIMESTAMPTZ  | auto                     |                                    |
-| updatedAt | TIMESTAMPTZ  | auto                     |                                    |
+| Column     | Type         | Constraints              | Description                           |
+|------------|--------------|--------------------------|---------------------------------------|
+| guildId    | STRING(20)   | PK, FK -> Guild          | Discord guild snowflake               |
+| level      | INTEGER      | PK                       | Level at which the role is awarded    |
+| roleId     | STRING(20)   | NOT NULL                 | Discord role snowflake                |
+| cumulative | BOOLEAN      | NOT NULL, default: false | If true, role persists through all level-ups (see feature 08) |
+| createdAt  | TIMESTAMPTZ  | auto                     |                                       |
+| updatedAt  | TIMESTAMPTZ  | auto                     |                                       |
 
 ### Migration
 
@@ -249,7 +250,7 @@ Replaces all level-role mappings for the guild (delete + bulk insert).
 When a user levels up and the new level has a configured role:
 1. Bot attempts to add the role via Discord API.
 2. If the bot lacks `ManageRoles` permission or the role is above the bot's highest role, log a warning and skip silently.
-3. Role rewards are cumulative -- reaching level 10 also grants the level 5 role if the user doesn't already have it.
+3. Role rewards support a `cumulative` flag (see feature 08). Non-cumulative roles are replaced when a higher non-cumulative role is earned. Cumulative roles persist through all level-ups.
 
 ## Dependencies
 

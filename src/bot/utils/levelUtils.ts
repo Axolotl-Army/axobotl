@@ -126,4 +126,53 @@ export function randomXp(min = XP_MIN, max = XP_MAX): number {
   return min + Math.floor(Math.random() * (max - min + 1));
 }
 
+// ── Role reward decisions ────────────────────────────────────────────────────
+
+export type RoleRewardEntry = {
+  level: number;
+  roleId: string;
+  cumulative: boolean;
+};
+
+export type RoleRewardActions = {
+  toAdd: string[];
+  toRemove: string[];
+};
+
+/**
+ * Given configured role rewards, the user's current level, and the roles
+ * the user already has, returns which roles to add and which to remove.
+ *
+ * Non-cumulative roles below the highest earned non-cumulative role are removed.
+ * Cumulative roles are never removed.
+ */
+export function computeRoleRewardActions(
+  roleRewards: RoleRewardEntry[],
+  currentLevel: number,
+  memberRoleIds: Set<string>,
+): RoleRewardActions {
+  const sorted = [...roleRewards].sort((a, b) => a.level - b.level);
+  const earned = sorted.filter((r) => r.level <= currentLevel);
+
+  // Roles to add: all earned roles the user doesn't have yet
+  const toAdd = earned
+    .filter((r) => !memberRoleIds.has(r.roleId))
+    .map((r) => r.roleId);
+
+  // Non-cumulative removal: find highest earned non-cumulative, remove all below it
+  const earnedNonCum = earned.filter((r) => !r.cumulative);
+  const toRemove: string[] = [];
+
+  if (earnedNonCum.length > 1) {
+    const highest = earnedNonCum[earnedNonCum.length - 1]!;
+    for (const r of earnedNonCum) {
+      if (r.roleId !== highest.roleId) {
+        toRemove.push(r.roleId);
+      }
+    }
+  }
+
+  return { toAdd, toRemove };
+}
+
 export { DEFAULT_LEVEL_UP_MESSAGE, COOLDOWN_MS, XP_MIN, XP_MAX, MAX_LEVEL_UP_ANNOUNCEMENTS, XP_MAX_VALUE };

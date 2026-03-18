@@ -117,6 +117,20 @@ No schema changes. Existing models are reused:
 4. **Pagination**: Logs page shows 20 entries per page with URL query param `?page=N`.
 5. **Data access**: All DB queries use the shared Sequelize instance from `src/shared/database.ts`.
 
+## Additional Pages (added by later features)
+
+The following pages were added on top of the base dashboard by subsequent features:
+
+- `/dashboard/plugins` -- plugin overview grid (feature 07)
+- `/dashboard/plugins/leveling` -- leveling plugin configuration (feature 07)
+- `/dashboard/settings` -- general guild settings + command toggles (feature 06, 07)
+- `/api/v1/guilds/:id` -- GET/PATCH guild config (feature 06)
+- `/api/v1/guilds/:id/plugins` -- GET plugins list (feature 07)
+- `/api/v1/guilds/:id/plugins/:pluginId` -- PATCH plugin toggle/config (feature 07)
+- `/api/v1/guilds/:id/plugins/leveling/roles` -- GET/PUT role rewards (feature 07, 08)
+- `/api/v1/guilds/:id/channels` -- GET Discord channels (feature 07)
+- `/api/v1/guilds/:id/roles` -- GET Discord roles (feature 07)
+
 ## Dependencies
 
 - No feature dependencies (this is the base dashboard)
