@@ -16,7 +16,7 @@ RUN cd src/dashboard && pnpm install --frozen-lockfile
 COPY tsconfig.json ./
 COPY src/ ./src/
 RUN pnpm exec tsc
-RUN cd src/dashboard && pnpm exec next build
+RUN cd src/dashboard && pnpm exec next build --webpack
 
 # Stage 2: Bot runner
 FROM node:22-alpine AS bot
@@ -41,7 +41,7 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 appgroup \
   && adduser --system --uid 1001 --ingroup appgroup appuser
 
-# Next.js standalone output — turbopack root is the monorepo root,
+# Next.js standalone output — outputFileTracingRoot is the monorepo root,
 # so the server entry lives under src/dashboard/ within standalone
 COPY --from=builder --chown=appuser:appgroup /app/src/dashboard/.next/standalone/src/dashboard ./
 COPY --from=builder --chown=appuser:appgroup /app/src/dashboard/.next/standalone/node_modules ./node_modules
