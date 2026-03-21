@@ -44,7 +44,6 @@ RUN addgroup --system --gid 1001 appgroup \
 # Next.js standalone output — outputFileTracingRoot is the monorepo root,
 # so the server entry lives under src/dashboard/ within standalone
 COPY --from=builder --chown=appuser:appgroup /app/src/dashboard/.next/standalone/src/dashboard ./
-COPY --from=builder --chown=appuser:appgroup /app/src/dashboard/.next/standalone/node_modules ./node_modules
 COPY --from=builder --chown=appuser:appgroup /app/src/dashboard/.next/static ./.next/static
 COPY --from=builder --chown=appuser:appgroup /app/src/dashboard/public ./public
 
