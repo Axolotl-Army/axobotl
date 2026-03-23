@@ -7,10 +7,11 @@ config({ path: resolve(__dirname, '../../.env') });
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  outputFileTracingRoot: resolve(__dirname, '../..'),
   turbopack: {
     root: resolve(__dirname, '../..'),
   },
-serverExternalPackages: ['sequelize', 'pg', 'pg-hstore'],
+  serverExternalPackages: ['sequelize', 'pg', 'pg-hstore'],
   async headers() {
     return [
       {
