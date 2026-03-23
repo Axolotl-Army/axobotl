@@ -8,8 +8,18 @@ import { useGuildContext } from '@/context/useGuildContext'
 type GuildConfig = {
   id: string
   language: string
+  embedColor: string | null
   disabledCommands: string[]
 }
+
+const COLOUR_SWATCHES = [
+  { label: 'Blurple', value: '#5865F2' },
+  { label: 'Green', value: '#57F287' },
+  { label: 'Yellow', value: '#FEE75C' },
+  { label: 'Fuchsia', value: '#EB459E' },
+  { label: 'Red', value: '#ED4245' },
+  { label: 'White', value: '#FFFFFF' },
+]
 type SaveStatus = { type: 'success' | 'error'; message: string } | null
 
 const BASE_COMMANDS = [
@@ -24,6 +34,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>(null)
   const [language, setLanguage] = useState('en')
+  const [embedColor, setEmbedColor] = useState<string | null>(null)
   const [disabledCommands, setDisabledCommands] = useState<string[]>([])
 
   useEffect(() => {
@@ -37,6 +48,7 @@ export default function SettingsPage() {
         if (res.ok) {
           const data: GuildConfig = await res.json()
           setLanguage(data.language ?? 'en')
+          setEmbedColor(data.embedColor ?? null)
           setDisabledCommands(data.disabledCommands ?? [])
         }
       } finally {
@@ -61,7 +73,7 @@ export default function SettingsPage() {
       const res = await fetch(`${basePath}/api/v1/guilds/${selectedGuildId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language, disabledCommands }),
+        body: JSON.stringify({ language, embedColor, disabledCommands }),
       })
 
       if (res.ok) {
@@ -75,7 +87,7 @@ export default function SettingsPage() {
     } finally {
       setSaving(false)
     }
-  }, [selectedGuildId, language, disabledCommands])
+  }, [selectedGuildId, language, embedColor, disabledCommands])
 
   return (
     <div className="content-wrapper">
@@ -114,6 +126,106 @@ export default function SettingsPage() {
                   </Form.Select>
                   <Form.Text className="text-muted">
                     Bot language for this guild.
+                  </Form.Text>
+                </Form.Group>
+              </Card.Body>
+            </Card>
+
+            <Card className="mb-4">
+              <Card.Header>
+                <div className="d-flex align-items-center">
+                  <svg className="sa-icon sa-icon-lg sa-icon-primary me-2">
+                    <use href={`${basePath}/icons/sprite.svg#color-palette`} />
+                  </svg>
+                  <h5 className="mb-0">Default Embed Colour</h5>
+                </div>
+              </Card.Header>
+              <Card.Body>
+                <p className="text-muted mb-3">
+                  Choose a default colour for bot embeds. Commands that specify their own colour
+                  will override this setting.
+                </p>
+                <div className="d-flex flex-wrap gap-2 mb-3">
+                  {COLOUR_SWATCHES.map((swatch) => (
+                    <button
+                      key={swatch.value}
+                      type="button"
+                      className="btn btn-sm d-flex align-items-center gap-1 px-2 py-1"
+                      style={{
+                        border: embedColor === swatch.value
+                          ? '2px solid var(--bs-primary)'
+                          : '1px solid var(--bs-border-color)',
+                        borderRadius: '0.375rem',
+                        background: 'transparent',
+                      }}
+                      onClick={() => setEmbedColor(swatch.value)}
+                      title={swatch.label}
+                    >
+                      <span
+                        className="rounded-circle d-inline-block"
+                        style={{
+                          width: 18,
+                          height: 18,
+                          backgroundColor: swatch.value,
+                          border: '1px solid var(--bs-border-color)',
+                        }}
+                      />
+                      <span className="small">{swatch.label}</span>
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary px-2 py-1"
+                    onClick={() => setEmbedColor(null)}
+                    style={{
+                      border: embedColor === null
+                        ? '2px solid var(--bs-primary)'
+                        : undefined,
+                    }}
+                  >
+                    Default
+                  </button>
+                </div>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">Custom Colour</Form.Label>
+                  <div className="d-flex align-items-center gap-2">
+                    <Form.Control
+                      type="color"
+                      value={embedColor ?? '#5865F2'}
+                      onChange={(e) => setEmbedColor(e.target.value.toUpperCase())}
+                      style={{ width: 48, height: 38, padding: 2 }}
+                    />
+                    <Form.Control
+                      type="text"
+                      value={embedColor ?? ''}
+                      onChange={(e) => {
+                        const v = e.target.value.trim()
+                        if (v === '') {
+                          setEmbedColor(null)
+                        } else {
+                          setEmbedColor(v.toUpperCase())
+                        }
+                      }}
+                      placeholder="#5865F2"
+                      maxLength={7}
+                      style={{ maxWidth: 120 }}
+                    />
+                    {embedColor && (
+                      <span
+                        className="rounded d-inline-block"
+                        style={{
+                          width: 38,
+                          height: 38,
+                          backgroundColor: embedColor,
+                          border: '1px solid var(--bs-border-color)',
+                        }}
+                      />
+                    )}
+                  </div>
+                  <Form.Text className="text-muted">
+                    {embedColor
+                      ? `Preview: ${embedColor}`
+                      : 'No custom colour set — using bot default (Blurple).'}
                   </Form.Text>
                 </Form.Group>
               </Card.Body>
