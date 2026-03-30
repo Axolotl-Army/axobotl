@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import type { SlashCommand } from '../types';
-import { createContainer, createTitle, createText, createSeparator } from '../utils/componentBuilders';
+import { createGuildContainer, createTitle, createText, createSeparator } from '../utils/componentBuilders';
 import { pluginCache, getAllPlugins } from '../plugins';
 import { Guild } from '../../shared/models';
 
@@ -23,7 +23,7 @@ export const command: SlashCommand = {
     .setDescription('List all available commands'),
 
   async execute(interaction) {
-    const container = createContainer()
+    const container = (await createGuildContainer(interaction.guildId!))
       .addTextDisplayComponents(createTitle('Axobotl -- Commands'))
       .addSeparatorComponents(createSeparator());
 

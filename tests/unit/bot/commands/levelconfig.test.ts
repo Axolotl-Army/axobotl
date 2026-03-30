@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+vi.mock('../../../../src/bot/utils/embedUtils', () => ({
+  getEmbedColor: vi.fn().mockResolvedValue(0x5865f2),
+  DEFAULT_EMBED_COLOR: 0x5865f2,
+}));
+
 const { mockUpdate } = vi.hoisted(() => ({
   mockUpdate: vi.fn().mockResolvedValue(undefined),
 }));
@@ -92,13 +97,13 @@ describe('/levelconfig command', () => {
       expect(arg.content).toBeUndefined();
     });
 
-    it('container is type 17 with green accent color', async () => {
+    it('container is type 17 with guild embed color', async () => {
       const interaction = createInteraction('Hello {user}');
       await command.execute(interaction as never);
 
       const containerJson = getContainerJson(interaction);
       expect(containerJson.type).toBe(17);
-      expect(containerJson.accent_color).toBe(0x57f287);
+      expect(containerJson.accent_color).toBe(0x5865f2);
     });
 
     it('container title reads "# Level-Up Message Updated" for a custom template', async () => {

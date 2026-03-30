@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 
+vi.mock('../../../../src/bot/utils/embedUtils', () => ({
+  getEmbedColor: vi.fn().mockResolvedValue(0x5865f2),
+  DEFAULT_EMBED_COLOR: 0x5865f2,
+}));
+
 vi.mock('../../../../src/shared/models/GuildPlugin', () => ({
   GuildPlugin: { findAll: vi.fn().mockResolvedValue([]) },
 }));

@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { MessageFlags } from 'discord.js';
+
+vi.mock('../../../../src/bot/utils/embedUtils', () => ({
+  getEmbedColor: vi.fn().mockResolvedValue(0x5865f2),
+  DEFAULT_EMBED_COLOR: 0x5865f2,
+}));
+
 import { command } from '../../../../src/bot/commands/ping';
 
 const IS_COMPONENTS_V2 = 32768; // MessageFlags.IsComponentsV2

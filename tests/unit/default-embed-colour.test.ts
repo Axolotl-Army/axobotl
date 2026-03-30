@@ -163,6 +163,10 @@ const { getEmbedColor, DEFAULT_EMBED_COLOR } = await import(
   '../../src/bot/utils/embedUtils'
 );
 
+const { createGuildContainer, EmbedColors } = await import(
+  '../../src/bot/utils/componentBuilders'
+);
+
 describe('getEmbedColor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -186,5 +190,46 @@ describe('getEmbedColor', () => {
     mockBotGuildFindByPk.mockResolvedValue(null);
     const colour = await getEmbedColor('nonexistent');
     expect(colour).toBe(DEFAULT_EMBED_COLOR);
+  });
+});
+
+describe('createGuildContainer', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should use guild embed colour when no override is given', async () => {
+    mockBotGuildFindByPk.mockResolvedValue({ embedColor: '#FF5733' });
+    const container = await createGuildContainer('123');
+    const json = container.toJSON() as { accent_color: number };
+    expect(json.accent_color).toBe(0xff5733);
+  });
+
+  it('should fall back to default when guild has no colour set', async () => {
+    mockBotGuildFindByPk.mockResolvedValue({ embedColor: null });
+    const container = await createGuildContainer('123');
+    const json = container.toJSON() as { accent_color: number };
+    expect(json.accent_color).toBe(DEFAULT_EMBED_COLOR);
+  });
+
+  it('should use override colour instead of guild colour', async () => {
+    mockBotGuildFindByPk.mockResolvedValue({ embedColor: '#FF5733' });
+    const container = await createGuildContainer('123', EmbedColors.Error);
+    const json = container.toJSON() as { accent_color: number };
+    expect(json.accent_color).toBe(EmbedColors.Error);
+  });
+});
+
+describe('EmbedColors', () => {
+  it('should export Error colour as red', () => {
+    expect(EmbedColors.Error).toBe(0xed4245);
+  });
+
+  it('should export Warning colour as yellow', () => {
+    expect(EmbedColors.Warning).toBe(0xfee75c);
+  });
+
+  it('should export Success colour as green', () => {
+    expect(EmbedColors.Success).toBe(0x57f287);
   });
 });
