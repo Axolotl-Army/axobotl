@@ -7,7 +7,7 @@ import type { SlashCommand } from '../types';
 import { UserLevel } from '../../shared/models/UserLevel';
 import { computeXpUpdate, formatLevelUpMessage } from '../utils/levelUtils';
 import { Guild } from '../../shared/models/Guild';
-import { createContainer, createTitle, createText, createSeparator } from '../utils/componentBuilders';
+import { createGuildContainer, createTitle, createText, createSeparator } from '../utils/componentBuilders';
 
 const AMOUNT_MIN = 1;
 const AMOUNT_MAX = 100_000;
@@ -98,7 +98,7 @@ export const command: SlashCommand = {
 
     await record.update({ xp: result.newXp, level: result.newLevel });
 
-    const container = createContainer(0x57f287)
+    const container = (await createGuildContainer(guildId))
       .addTextDisplayComponents(createTitle('XP Updated'))
       .addSeparatorComponents(createSeparator())
       .addTextDisplayComponents(

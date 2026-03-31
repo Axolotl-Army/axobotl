@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, MessageFlags, version as djsVersion } from 'discord.js';
 import type { SlashCommand } from '../types';
-import { createContainer, createTitle, createText, createSeparator } from '../utils/componentBuilders';
+import { createGuildContainer, createTitle, createText, createSeparator } from '../utils/componentBuilders';
 
 export const command: SlashCommand = {
   data: new SlashCommandBuilder()
@@ -14,7 +14,7 @@ export const command: SlashCommand = {
     const memberCount = client.guilds.cache.reduce((sum, g) => sum + g.memberCount, 0);
     const dashboardUrl = process.env['DASHBOARD_URL'] ?? null;
 
-    const container = createContainer()
+    const container = (await createGuildContainer(interaction.guildId!))
       .addTextDisplayComponents(createTitle('Axobotl'))
       .addSeparatorComponents(createSeparator())
       .addTextDisplayComponents(

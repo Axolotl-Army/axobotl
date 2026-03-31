@@ -7,7 +7,7 @@ import type { SlashCommand } from '../types';
 import { UserLevel } from '../../shared/models/UserLevel';
 import { Op } from 'sequelize';
 import {
-  createContainer,
+  createGuildContainer,
   createTitle,
   createText,
   createSeparator,
@@ -60,7 +60,7 @@ async function buildLeaderboardLines(
   );
 }
 
-function buildMessage(
+async function buildMessage(
   lines: string[],
   page: number,
   totalPages: number,
@@ -68,7 +68,7 @@ function buildMessage(
   guildId: string,
   myRankDisabled: boolean,
 ) {
-  const container = createContainer()
+  const container = (await createGuildContainer(guildId))
     .addTextDisplayComponents(createTitle('XP Leaderboard'))
     .addSeparatorComponents(createSeparator());
 
@@ -111,7 +111,7 @@ export const command: SlashCommand = {
     const userRank = await getUserRank(guildId, userId);
     const myRankDisabled = userRank === null;
 
-    const msg = buildMessage(lines, page, totalPages, userId, guildId, myRankDisabled);
+    const msg = await buildMessage(lines, page, totalPages, userId, guildId, myRankDisabled);
     const { resource } = await interaction.reply({ ...msg, withResponse: true });
     const message = resource!.message!;
 
@@ -151,7 +151,7 @@ export const command: SlashCommand = {
       const pageLines = await buildLeaderboardLines(pageRecords, startRank, interaction.guild!);
 
       const freshUserRank = await getUserRank(guildId, userId);
-      const updated = buildMessage(pageLines, currentPage, freshTotalPages, userId, guildId, freshUserRank === null);
+      const updated = await buildMessage(pageLines, currentPage, freshTotalPages, userId, guildId, freshUserRank === null);
 
       await i.update(updated);
     });
@@ -164,7 +164,7 @@ export const command: SlashCommand = {
         const startRank = (currentPage - 1) * PAGE_SIZE + 1;
         const pageLines = await buildLeaderboardLines(pageRecords, startRank, interaction.guild!);
 
-        const container = createContainer()
+        const container = (await createGuildContainer(guildId))
           .addTextDisplayComponents(createTitle('XP Leaderboard'))
           .addSeparatorComponents(createSeparator());
 

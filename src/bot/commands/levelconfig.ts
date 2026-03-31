@@ -2,7 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.
 import type { SlashCommand } from '../types';
 import { GuildPlugin } from '../../shared/models/GuildPlugin';
 import { formatLevelUpMessage } from '../utils/levelUtils';
-import { createContainer, createTitle, createText, createSeparator } from '../utils/componentBuilders';
+import { createGuildContainer, createTitle, createText, createSeparator } from '../utils/componentBuilders';
 
 const RESET_KEYWORD = 'reset';
 
@@ -46,7 +46,7 @@ export const command: SlashCommand = {
 
     const title = isReset ? 'Level-Up Message Reset' : 'Level-Up Message Updated';
 
-    const container = createContainer(0x57f287)
+    const container = (await createGuildContainer(guildId))
       .addTextDisplayComponents(createTitle(title))
       .addSeparatorComponents(createSeparator())
       .addTextDisplayComponents(

@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MessageFlags } from 'discord.js';
+
+vi.mock('../../../../src/bot/utils/embedUtils', () => ({
+  getEmbedColor: vi.fn().mockResolvedValue(0x5865f2),
+  DEFAULT_EMBED_COLOR: 0x5865f2,
+}));
+
 import { command } from '../../../../src/bot/commands/xp';
 
 vi.mock('../../../../src/shared/models/UserLevel', () => ({
@@ -176,7 +182,7 @@ describe('/xp command', () => {
       expect(allContent).toContain('<@222>');
     });
 
-    it('container uses green accent color (0x57f287)', async () => {
+    it('container uses guild embed color from getEmbedColor', async () => {
       const record = mockRecord(50, 0);
       vi.mocked(UserLevel.findOrCreate).mockResolvedValue([record as never, true]);
 
@@ -184,7 +190,7 @@ describe('/xp command', () => {
       await command.execute(interaction as never);
 
       const containerJson = getContainerJson(interaction);
-      expect(containerJson.accent_color).toBe(0x57f287);
+      expect(containerJson.accent_color).toBe(0x5865f2);
     });
 
     it('sends level-up followUp when levels are gained', async () => {

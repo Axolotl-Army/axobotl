@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import type { SlashCommand } from '../types';
-import { createContainer, createTitle, createText } from '../utils/componentBuilders';
+import { createGuildContainer, createTitle, createText } from '../utils/componentBuilders';
 
 export const command: SlashCommand = {
   data: new SlashCommandBuilder()
@@ -13,7 +13,7 @@ export const command: SlashCommand = {
     const latency = Date.now() - sent;
     const apiLatency = interaction.client.ws.ping;
 
-    const container = createContainer()
+    const container = (await createGuildContainer(interaction.guildId!))
       .addTextDisplayComponents(createTitle('Pong!'))
       .addTextDisplayComponents(
         createText(`**Bot latency:** ${latency}ms`),

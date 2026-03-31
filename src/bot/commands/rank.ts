@@ -3,7 +3,7 @@ import type { SlashCommand } from '../types';
 import { UserLevel } from '../../shared/models/UserLevel';
 import { getLevelFromXp, getXpForLevel } from '../utils/levelUtils';
 import { Op } from 'sequelize';
-import { createContainer, createTitle, createText, createSeparator } from '../utils/componentBuilders';
+import { createGuildContainer, createTitle, createText, createSeparator } from '../utils/componentBuilders';
 
 export const command: SlashCommand = {
   data: new SlashCommandBuilder()
@@ -33,7 +33,7 @@ export const command: SlashCommand = {
 
     const avatarUrl = target.displayAvatarURL({ size: 128 });
 
-    const container = createContainer();
+    const container = await createGuildContainer(guildId);
 
     container.addSectionComponents(
       new SectionBuilder()

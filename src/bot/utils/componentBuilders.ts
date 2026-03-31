@@ -8,11 +8,26 @@ import {
   ButtonStyle,
   type MessageActionRowComponentBuilder,
 } from 'discord.js';
+import { getEmbedColor } from './embedUtils';
 
 const DEFAULT_ACCENT = 0x5865f2;
 
+export const EmbedColors = {
+  Error: 0xed4245,
+  Warning: 0xfee75c,
+  Success: 0x57f287,
+} as const;
+
 export function createContainer(accentColor = DEFAULT_ACCENT): ContainerBuilder {
   return new ContainerBuilder().setAccentColor(accentColor);
+}
+
+export async function createGuildContainer(
+  guildId: string,
+  overrideColor?: number,
+): Promise<ContainerBuilder> {
+  const color = overrideColor ?? await getEmbedColor(guildId);
+  return new ContainerBuilder().setAccentColor(color);
 }
 
 export function createTitle(text: string): TextDisplayBuilder {
