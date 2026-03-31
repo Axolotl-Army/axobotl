@@ -1,6 +1,7 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
 import { Card, Form, Button, Spinner } from 'react-bootstrap'
+import { useSession } from 'next-auth/react'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import { basePath } from '@/helpers'
 import { useGuildContext } from '@/context/useGuildContext'
@@ -22,13 +23,113 @@ const COLOUR_SWATCHES = [
 ]
 type SaveStatus = { type: 'success' | 'error'; message: string } | null
 
+const XP_COEFFICIENT = 50
+const XP_EXPONENT = 1.7385
+
+function getXpForLevel(level: number): number {
+  if (level <= 0) return 0
+  return Math.round(XP_COEFFICIENT * Math.pow(level, XP_EXPONENT))
+}
+
+function getLevelFromXp(totalXp: number): number {
+  if (totalXp <= 0) return 0
+  let l = Math.floor(Math.pow(totalXp / XP_COEFFICIENT, 1 / XP_EXPONENT))
+  while (getXpForLevel(l + 1) <= totalXp) l++
+  while (l > 0 && getXpForLevel(l) > totalXp) l--
+  return l
+}
+
+const PREVIEW_XP = 1337
+const PREVIEW_LEVEL = getLevelFromXp(PREVIEW_XP)
+const PREVIEW_XP_CURRENT = getXpForLevel(PREVIEW_LEVEL)
+const PREVIEW_XP_NEXT = getXpForLevel(PREVIEW_LEVEL + 1)
+const PREVIEW_XP_INTO = PREVIEW_XP - PREVIEW_XP_CURRENT
+const PREVIEW_XP_NEEDED = PREVIEW_XP_NEXT - PREVIEW_XP_CURRENT
+
 const BASE_COMMANDS = [
   { name: 'help', label: 'Help', description: 'List all available commands' },
   { name: 'ping', label: 'Ping', description: 'Check bot latency' },
   { name: 'info', label: 'Info', description: 'Show general information about the bot' },
 ]
 
+function EmbedPreview({ color, userName, avatarUrl }: {
+  color: string
+  userName: string
+  avatarUrl?: string
+}) {
+  const progressPercent = Math.round((PREVIEW_XP_INTO / PREVIEW_XP_NEEDED) * 100)
+  return (
+    <div
+      style={{
+        display: 'flex',
+        maxWidth: 520,
+        borderRadius: 8,
+        overflow: 'hidden',
+        backgroundColor: '#2b2d31',
+        fontFamily: 'gg sans, Noto Sans, Helvetica Neue, Helvetica, Arial, sans-serif',
+      }}
+    >
+      <div style={{ width: 4, flexShrink: 0, backgroundColor: color }} />
+      <div style={{ padding: '12px 16px', flex: 1, minWidth: 0 }}>
+        {/* Section: name + level + avatar */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: '#f2f3f5', fontWeight: 700, fontSize: 15 }}>
+              {userName}
+            </div>
+            <div style={{ color: '#b5bac1', fontSize: 14, marginTop: 2 }}>
+              Level {PREVIEW_LEVEL}
+            </div>
+          </div>
+          <img
+            src={avatarUrl ?? `https://cdn.discordapp.com/embed/avatars/0.png`}
+            alt=""
+            width={64}
+            height={64}
+            style={{ borderRadius: 6, flexShrink: 0 }}
+          />
+        </div>
+
+        {/* Separator */}
+        <hr style={{ border: 'none', borderTop: '1px solid #3f4147', margin: '10px 0' }} />
+
+        {/* Stats */}
+        <div style={{ color: '#dbdee1', fontSize: 14, lineHeight: 1.7 }}>
+          <div><strong>Total XP:</strong> {PREVIEW_XP.toLocaleString()}</div>
+          <div><strong>Guild Rank:</strong> #7</div>
+          <div>
+            <strong>Progress to Level {PREVIEW_LEVEL + 1}:</strong>{' '}
+            {PREVIEW_XP_INTO.toLocaleString()} / {PREVIEW_XP_NEEDED.toLocaleString()} XP
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        <div
+          style={{
+            marginTop: 8,
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: '#1e1f22',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              width: `${progressPercent}%`,
+              height: '100%',
+              borderRadius: 4,
+              backgroundColor: color,
+              transition: 'width 0.3s ease, background-color 0.3s ease',
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function SettingsPage() {
+  const { data: session } = useSession()
   const { selectedGuildId, loading: guildsLoading } = useGuildContext()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -228,6 +329,14 @@ export default function SettingsPage() {
                       : 'No custom colour set — using bot default (Blurple).'}
                   </Form.Text>
                 </Form.Group>
+
+                <hr className="my-4" />
+                <Form.Label className="fw-semibold mb-3">Preview</Form.Label>
+                <EmbedPreview
+                  color={embedColor ?? '#5865F2'}
+                  userName={session?.user?.name ?? 'User'}
+                  avatarUrl={session?.user?.image ?? undefined}
+                />
               </Card.Body>
             </Card>
 
