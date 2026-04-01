@@ -1,0 +1,24 @@
+{
+  "name": "Axobotl Dev",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/axobotl",
+  "postCreateCommand": "bash -c 'test -f .env || cp .env.example .env' && pnpm install && cd src/dashboard && pnpm install",
+  "postStartCommand": "pnpm db:sync",
+  "forwardPorts": [3000, 5432],
+  "portsAttributes": {
+    "3000": { "label": "Dashboard", "onAutoForward": "notify" },
+    "5432": { "label": "PostgreSQL", "onAutoForward": "silent" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-pg"
+      ]
+    }
+  },
+  "remoteUser": "node"
+}
