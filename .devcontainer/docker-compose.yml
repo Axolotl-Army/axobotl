@@ -6,9 +6,12 @@ services:
     volumes:
       - ..:/workspaces/axobotl:cached
     command: sleep infinity
+    env_file:
+      - ../.env
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/axobotl
       NODE_ENV: development
+      NEXTAUTH_URL: http://localhost:3000
     depends_on:
       db:
         condition: service_healthy
