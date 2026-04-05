@@ -43,21 +43,25 @@ async function buildLeaderboardLines(
   startRank: number,
   guild: import('discord.js').Guild,
 ): Promise<string[]> {
-  return Promise.all(
-    records.map(async (record, idx) => {
-      let username: string;
-      try {
-        const member =
-          guild.members.cache.get(record.userId) ??
-          await guild.members.fetch(record.userId);
-        username = member.displayName;
-      } catch {
-        username = `<@${record.userId}>`;
-      }
-      const rank = startRank + idx;
-      return `**${rank}.** ${username} -- Level ${record.level} (${record.xp.toLocaleString()} XP)`;
-    }),
-  );
+  // Batch-fetch members not already cached
+  const uncachedIds = records
+    .filter((r) => !guild.members.cache.has(r.userId))
+    .map((r) => r.userId);
+
+  if (uncachedIds.length > 0) {
+    try {
+      await guild.members.fetch({ user: uncachedIds });
+    } catch {
+      // Partial failures are fine -- we fall back to mentions below
+    }
+  }
+
+  return records.map((record, idx) => {
+    const member = guild.members.cache.get(record.userId);
+    const username = member?.displayName ?? `<@${record.userId}>`;
+    const rank = startRank + idx;
+    return `**${rank}.** ${username} -- Level ${record.level} (${record.xp.toLocaleString()} XP)`;
+  });
 }
 
 async function buildMessage(
