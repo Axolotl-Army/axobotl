@@ -3,7 +3,7 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
   "workspaceFolder": "/workspaces/axobotl",
-  "postCreateCommand": "bash -c 'test -f .env || cp .env.example .env' && pnpm install && cd src/dashboard && pnpm install",
+  "postCreateCommand": "bash -c 'test -f .env || cp .env.example .env' && pnpm install --approve-builds && cd src/dashboard && pnpm install --approve-builds",
   "postStartCommand": "pnpm db:sync",
   "forwardPorts": [3000, 5432],
   "portsAttributes": {
