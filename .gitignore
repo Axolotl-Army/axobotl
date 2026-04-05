@@ -11,6 +11,7 @@ src/dashboard/.next/
 # Dependencies
 node_modules/
 package-lock.json
+.pnpm-store/
 
 # Testing
 docker-compose.test.yml
