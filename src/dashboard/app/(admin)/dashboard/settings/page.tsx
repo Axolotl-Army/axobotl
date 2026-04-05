@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import PageBreadcrumb from '@/components/PageBreadcrumb';
 import { basePath } from '@/helpers';
 import { useGuildContext } from '@/context/useGuildContext';
-import { getXpForLevel, getLevelFromXp } from '../../../../shared/levelFormula';
+import { getXpForLevel, getLevelFromXp } from '@shared/levelFormula';
 
 type GuildConfig = {
   id: string;
