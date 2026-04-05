@@ -11,8 +11,7 @@ source_files:
   - src/dashboard/app/(admin)/dashboard/logs/page.tsx
 routes: []
 models: []
-test_files:
-  - tests/unit/dashboard/components/DataTable.test.tsx
+test_files: []
 known_issues: []
 ---
 

@@ -1,7 +1,5 @@
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const XP_COEFFICIENT = 50;
-const XP_EXPONENT = 1.7385;
 const COOLDOWN_MS = 60_000;
 const XP_MIN = 7;
 const XP_MAX = 13;
@@ -10,25 +8,10 @@ const MAX_LEVEL_UP_ANNOUNCEMENTS = 5;
 // PostgreSQL INTEGER max — xp column type upper bound
 const XP_MAX_VALUE = 2_147_483_647;
 
-// ── Leveling formula ──────────────────────────────────────────────────────────
+// ── Leveling formula (re-exported from shared) ──────────────────────────────
 
-/** Total XP required to reach the given level. Returns 0 for level <= 0. */
-export function getXpForLevel(level: number): number {
-  if (level <= 0) return 0;
-  return Math.round(XP_COEFFICIENT * Math.pow(level, XP_EXPONENT));
-}
-
-/** Current level derived from total accumulated XP. Returns 0 if below level 1 threshold. */
-export function getLevelFromXp(totalXp: number): number {
-  if (totalXp <= 0) return 0;
-  // Continuous approximation as starting point
-  let l = Math.floor(Math.pow(totalXp / XP_COEFFICIENT, 1 / XP_EXPONENT));
-  // Adjust for rounding in getXpForLevel: step up while the next threshold is still reachable
-  while (getXpForLevel(l + 1) <= totalXp) l++;
-  // Guard against overshoot
-  while (l > 0 && getXpForLevel(l) > totalXp) l--;
-  return l;
-}
+import { getXpForLevel, getLevelFromXp } from '../../shared/levelFormula';
+export { getXpForLevel, getLevelFromXp };
 
 // ── Message formatting ────────────────────────────────────────────────────────
 

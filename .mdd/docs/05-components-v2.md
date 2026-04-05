@@ -8,6 +8,7 @@ source_files:
   - src/bot/commands/help.ts
   - src/bot/commands/rank.ts
   - src/bot/commands/ping.ts
+  - src/bot/commands/info.ts
   - src/bot/commands/xp.ts
   - src/bot/commands/levelconfig.ts
   - src/bot/events/interactionCreate.ts
@@ -15,8 +16,12 @@ source_files:
 routes: []
 models: []
 test_files:
-  - tests/unit/leaderboard-v2.test.ts
-  - tests/unit/component-builders.test.ts
+  - tests/unit/bot/commands/leaderboard.test.ts
+  - tests/unit/bot/commands/rank.test.ts
+  - tests/unit/bot/commands/ping.test.ts
+  - tests/unit/bot/commands/help.test.ts
+  - tests/unit/bot/commands/xp.test.ts
+  - tests/unit/bot/commands/levelconfig.test.ts
 known_issues: []
 ---
 
@@ -131,6 +136,25 @@ User clicks /leaderboard
 
 - Admin confirmation response
 
+### Info (`/info`)
+
+**Layout:**
+```
+[Container (accent: guild embed colour)]
+  TextDisplay: "# Axobotl"
+  Separator (small)
+  TextDisplay: "**Servers:** 42"
+  TextDisplay: "**Members:** 1,234"
+  TextDisplay: "**Uptime:** 2d 5h 30m"
+  TextDisplay: "**discord.js:** v14.x"
+  Separator (small)
+  TextDisplay: "**Dashboard:** https://..."
+```
+
+- Ephemeral response (only visible to invoking user)
+- Dashboard URL shown only if `DASHBOARD_URL` env var is set
+- No buttons needed
+
 ### Levelconfig (`/levelconfig`)
 
 **Layout:**
@@ -144,19 +168,14 @@ User clicks /leaderboard
 
 ## Button Interaction Handling
 
-The `interactionCreate` handler must be updated to handle `isButton()`:
+Button interactions are handled via message component collectors, **not** through the `interactionCreate` event handler. Each paginated command (e.g. leaderboard) sets up a `createMessageComponentCollector` on its reply message:
 
-1. Parse `customId` to extract command prefix and action
-2. Route to the appropriate command's `handleButton()` method
-3. Use `interaction.update()` to edit the existing message (no new reply)
-
-### Collector Pattern
-
-Each paginated command uses `createMessageComponentCollector` on the reply message:
-- **Filter:** Only the original invoking user can interact
+- **Filter:** Only the original invoking user can interact (`i.user.id === userId`)
 - **Time:** 300,000ms (5 minutes)
-- **On collect:** Update message with new page
-- **On end:** Edit message with all buttons disabled
+- **On collect:** Parse `customId` to extract action, update message with new page via `i.update()`
+- **On end:** Edit reply to remove the ActionRow entirely (buttons removed, not disabled)
+
+The `interactionCreate` handler only processes `isChatInputCommand()` interactions.
 
 ## Shared Utilities (`src/bot/utils/componentBuilders.ts`)
 
@@ -172,7 +191,7 @@ Each paginated command uses `createMessageComponentCollector` on the reply messa
 
 - Only the user who invoked the command can interact with pagination buttons
 - Buttons expire after 300 seconds of inactivity
-- When buttons expire, the message is updated to show disabled buttons
+- When buttons expire, the message is updated to remove buttons entirely (ActionRow removed)
 - "My Rank" button is disabled when the invoking user has 0 XP in the guild
 - Leaderboard only shows users with XP > 0
 - Page count is calculated as ceil(totalUsersWithXP / 10)

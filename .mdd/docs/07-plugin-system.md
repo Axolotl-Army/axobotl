@@ -39,9 +39,9 @@ models:
   - GuildPlugin
   - LevelRole
 test_files:
-  - tests/unit/pluginCache.test.ts
-  - tests/unit/pluginRegistry.test.ts
-  - tests/unit/levelRoles.test.ts
+  - tests/unit/bot/plugins/pluginCache.test.ts
+  - tests/unit/bot/plugins/registry.test.ts
+  - tests/unit/dashboard/api/plugins.test.ts
 known_issues: []
 ---
 

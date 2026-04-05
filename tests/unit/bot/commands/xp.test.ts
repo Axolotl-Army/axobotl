@@ -20,8 +20,15 @@ vi.mock('../../../../src/shared/models/Guild', () => ({
   },
 }));
 
+vi.mock('../../../../src/bot/plugins', () => ({
+  pluginCache: {
+    getConfig: vi.fn().mockResolvedValue({}),
+  },
+}));
+
 import { UserLevel } from '../../../../src/shared/models/UserLevel';
 import { Guild } from '../../../../src/shared/models/Guild';
+import { pluginCache } from '../../../../src/bot/plugins';
 
 // MessageFlags.IsComponentsV2 (32768) | MessageFlags.Ephemeral (64) = 32832
 const FLAGS_COMPONENTS_V2_EPHEMERAL = 32832;

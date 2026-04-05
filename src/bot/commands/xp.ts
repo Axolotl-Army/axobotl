@@ -6,7 +6,7 @@ import {
 import type { SlashCommand } from '../types';
 import { UserLevel } from '../../shared/models/UserLevel';
 import { computeXpUpdate, formatLevelUpMessage } from '../utils/levelUtils';
-import { Guild } from '../../shared/models/Guild';
+import { pluginCache } from '../plugins';
 import { createGuildContainer, createTitle, createText, createSeparator } from '../utils/componentBuilders';
 
 const AMOUNT_MIN = 1;
@@ -114,8 +114,8 @@ export const command: SlashCommand = {
 
     // Post level-up notifications in the channel if levels were gained via add/set
     if (result.shouldNotify && sub !== 'remove') {
-      const guildRecord = await Guild.findByPk(guildId);
-      const template = guildRecord?.levelUpMessage ?? null;
+      const config = await pluginCache.getConfig(guildId, 'leveling');
+      const template = (config['levelUpMessage'] as string | null) ?? null;
       const userMention = `<@${target.id}>`;
 
       for (const lvl of result.levelsToAnnounce) {

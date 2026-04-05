@@ -44,6 +44,7 @@ function createInteraction(userId = '111') {
       members: {
         cache: {
           get: vi.fn().mockReturnValue(undefined),
+          has: vi.fn().mockReturnValue(false),
         },
         fetch: vi.fn().mockRejectedValue(new Error('not found')),
       },
