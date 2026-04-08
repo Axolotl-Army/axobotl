@@ -26,8 +26,9 @@ git branch --show-current
   ```bash
   git checkout -b feat/<scope-from-changes>
   ```
-  Report: "Created branch `feat/<scope>` — committing there instead of main."
+  Report: "Created branch `feat/<scope>` -- committing there instead of main."
   Then proceed with the commit on the new branch.
+- If on `development`: proceed normally -- this is the daily working branch
 - If already on a feature branch: proceed normally
 - If not a git repo: skip this check
 
