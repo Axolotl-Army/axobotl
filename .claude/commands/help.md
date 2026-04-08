@@ -57,6 +57,10 @@ CODE QUALITY
   /security-check    Scan project for secrets, vulnerabilities, and .gitignore gaps
   /commit            Smart commit with conventional commit format
 
+WORKFLOW
+  /merge [branch]    Promote development changes to a PR against main
+  /release [version] Create a version tag and GitHub release (-alpha)
+
 DEVELOPMENT
   /create-api <res>  Scaffold a full API endpoint — route, handler, types, tests
   /create-e2e <feat> Generate Playwright E2E test with explicit success criteria

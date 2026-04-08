@@ -99,10 +99,14 @@ process.on('SIGINT', () => void shutdown('SIGINT'));
 ```
 And close Sequelize before exiting: `await sequelize.close()`
 
-### 6. Git Workflow — Branch FIRST
-- ALWAYS check `git branch --show-current` before editing files
-- If on `main`, create a feature branch: `git checkout -b feat/<task-name>`
-- Branch naming: `feat/`, `fix/`, `docs/`, `refactor/`, `chore/`
+### 6. Git Workflow — Development Branch
+- The `development` branch is the daily working branch. Direct commits are allowed.
+- NEVER delete the `development` branch.
+- Before starting new work, sync `development` with `main`: `git fetch origin main && git merge origin/main`
+- When a feature is complete, use `/merge` to create a PR against `main`.
+- When done with a PR, ask to close it -- the feature branch will be deleted.
+- Version tags: use `/release` after merging to `main`.
+- Branch naming for PRs: `feat/`, `fix/`, `docs/`, `refactor/`, `chore/`
 
 ### 7. Quality Gates
 - No file > 300 lines (split if larger)
