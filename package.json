@@ -28,6 +28,7 @@
     "dotenv": "^17.4.1",
     "pg": "^8.20.0",
     "pg-hstore": "^2.3.4",
+    "pnpm": "^10.33.0",
     "sequelize": "^6.37.8"
   },
   "devDependencies": {
@@ -44,6 +45,9 @@
     "overrides": {
       "undici": ">=6.23.0",
       "esbuild": ">=0.25.0"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

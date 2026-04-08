@@ -1,1 +1,2 @@
+scripts-prepend-node-path=warn
 auto-install-peers=true
