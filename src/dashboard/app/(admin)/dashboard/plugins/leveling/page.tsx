@@ -7,30 +7,43 @@ import { useGuildContext } from '@/context/useGuildContext'
 import NotificationsCard from './NotificationsCard'
 import XpSettingsCard from './XpSettingsCard'
 import RoleRewardsCard from './RoleRewardsCard'
+import RoleMultipliersCard from './RoleMultipliersCard'
+import XpFiltersCard from './XpFiltersCard'
 
 type DiscordChannel = { id: string; name: string }
 type DiscordRole = { id: string; name: string; color: number }
-type LevelRoleEntry = { level: number; roleId: string; cumulative: boolean }
+type LevelRoleEntry = {
+  level: number
+  roleId: string | null
+  cumulative: boolean
+  description: string | null
+}
 type SaveStatus = { type: 'success' | 'error'; message: string } | null
+
+type RoleMultiplierEntry = { roleId: string; multiplier: number }
+type RoleMultiplierMode = 'highest' | 'multiply' | 'additive'
 
 type LevelingConfig = {
   levelUpMessage: string | null
+  rewardMessage: string | null
   levelUpChannelId: string | null
   xpMin: number
   xpMax: number
   cooldownMs: number
-  xpMultiplier: number
+  roleMultipliers?: RoleMultiplierEntry[]
+  roleMultiplierMode?: RoleMultiplierMode
 }
 
 const DEFAULT_LEVEL_UP_MESSAGE = 'GG {user}, you reached **level {level}**!'
+const DEFAULT_REWARD_MESSAGE = '{user} earned a new role reward: **{role}**{reward}'
 
 const DEFAULTS: LevelingConfig = {
   levelUpMessage: null,
+  rewardMessage: null,
   levelUpChannelId: null,
   xpMin: 7,
   xpMax: 13,
   cooldownMs: 60000,
-  xpMultiplier: 1.0,
 }
 
 export default function LevelingPluginPage() {
@@ -47,12 +60,22 @@ export default function LevelingPluginPage() {
 
   // Config state
   const [levelUpMessage, setLevelUpMessage] = useState(DEFAULT_LEVEL_UP_MESSAGE)
+  const [rewardMessage, setRewardMessage] = useState(DEFAULT_REWARD_MESSAGE)
   const [levelUpChannelMode, setLevelUpChannelMode] = useState<'same' | 'specific'>('same')
   const [levelUpChannelId, setLevelUpChannelId] = useState('')
   const [xpMin, setXpMin] = useState(7)
   const [xpMax, setXpMax] = useState(13)
   const [cooldownMs, setCooldownMs] = useState(60000)
-  const [xpMultiplier, setXpMultiplier] = useState(1.0)
+
+  // XP filters
+  const [roleFilterMode, setRoleFilterMode] = useState<'include' | 'exclude'>('include')
+  const [roleFilterIds, setRoleFilterIds] = useState<string[]>([])
+  const [channelFilterMode, setChannelFilterMode] = useState<'include' | 'exclude'>('include')
+  const [channelFilterIds, setChannelFilterIds] = useState<string[]>([])
+
+  // Role multipliers
+  const [roleMultipliers, setRoleMultipliers] = useState<RoleMultiplierEntry[]>([])
+  const [roleMultiplierMode, setRoleMultiplierMode] = useState<RoleMultiplierMode>('highest')
 
   // Role rewards
   const [levelRoles, setLevelRoles] = useState<LevelRoleEntry[]>([])
@@ -79,12 +102,18 @@ export default function LevelingPluginPage() {
             setEnabled(leveling.enabled)
             const cfg = leveling.config as LevelingConfig
             setLevelUpMessage(cfg.levelUpMessage ?? DEFAULT_LEVEL_UP_MESSAGE)
+            setRewardMessage(cfg.rewardMessage ?? DEFAULT_REWARD_MESSAGE)
             setLevelUpChannelMode(cfg.levelUpChannelId ? 'specific' : 'same')
             setLevelUpChannelId(cfg.levelUpChannelId ?? '')
             setXpMin(cfg.xpMin ?? DEFAULTS.xpMin)
             setXpMax(cfg.xpMax ?? DEFAULTS.xpMax)
             setCooldownMs(cfg.cooldownMs ?? DEFAULTS.cooldownMs)
-            setXpMultiplier(cfg.xpMultiplier ?? DEFAULTS.xpMultiplier)
+            setRoleFilterMode((cfg as Record<string, unknown>).roleFilterMode as 'include' | 'exclude' ?? 'include')
+            setRoleFilterIds(((cfg as Record<string, unknown>).roleFilterIds as string[]) ?? [])
+            setChannelFilterMode((cfg as Record<string, unknown>).channelFilterMode as 'include' | 'exclude' ?? 'include')
+            setChannelFilterIds(((cfg as Record<string, unknown>).channelFilterIds as string[]) ?? [])
+            setRoleMultipliers(((cfg as Record<string, unknown>).roleMultipliers as RoleMultiplierEntry[]) ?? [])
+            setRoleMultiplierMode(((cfg as Record<string, unknown>).roleMultiplierMode as RoleMultiplierMode) ?? 'highest')
           }
         }
 
@@ -127,14 +156,22 @@ export default function LevelingPluginPage() {
 
     const templateToSave = levelUpMessage.trim()
     const isDefault = templateToSave === DEFAULT_LEVEL_UP_MESSAGE || templateToSave === ''
+    const rewardToSave = rewardMessage.trim()
+    const isRewardDefault = rewardToSave === DEFAULT_REWARD_MESSAGE || rewardToSave === ''
 
     const config: Record<string, unknown> = {
       levelUpMessage: isDefault ? null : templateToSave,
+      rewardMessage: isRewardDefault ? null : rewardToSave,
       levelUpChannelId: levelUpChannelMode === 'specific' ? (levelUpChannelId || null) : null,
       xpMin,
       xpMax,
       cooldownMs,
-      xpMultiplier,
+      roleFilterMode,
+      roleFilterIds,
+      channelFilterMode,
+      channelFilterIds,
+      roleMultipliers,
+      roleMultiplierMode,
     }
 
     try {
@@ -173,12 +210,18 @@ export default function LevelingPluginPage() {
   }, [
     selectedGuildId,
     levelUpMessage,
+    rewardMessage,
     levelUpChannelMode,
     levelUpChannelId,
     xpMin,
     xpMax,
     cooldownMs,
-    xpMultiplier,
+    roleFilterMode,
+    roleFilterIds,
+    channelFilterMode,
+    channelFilterIds,
+    roleMultipliers,
+    roleMultiplierMode,
     levelRoles,
   ])
 
@@ -229,6 +272,9 @@ export default function LevelingPluginPage() {
                     levelUpChannelId={levelUpChannelId}
                     setLevelUpChannelId={setLevelUpChannelId}
                     defaultMessage={DEFAULT_LEVEL_UP_MESSAGE}
+                    rewardMessage={rewardMessage}
+                    setRewardMessage={setRewardMessage}
+                    defaultRewardMessage={DEFAULT_REWARD_MESSAGE}
                   />
                 </Col>
 
@@ -240,11 +286,30 @@ export default function LevelingPluginPage() {
                     setXpMax={setXpMax}
                     cooldownMs={cooldownMs}
                     setCooldownMs={setCooldownMs}
-                    xpMultiplier={xpMultiplier}
-                    setXpMultiplier={setXpMultiplier}
                   />
                 </Col>
               </Row>
+
+              <RoleMultipliersCard
+                roles={roles}
+                roleMultipliers={roleMultipliers}
+                setRoleMultipliers={setRoleMultipliers}
+                roleMultiplierMode={roleMultiplierMode}
+                setRoleMultiplierMode={setRoleMultiplierMode}
+              />
+
+              <XpFiltersCard
+                channels={channels}
+                roles={roles}
+                roleFilterMode={roleFilterMode}
+                setRoleFilterMode={setRoleFilterMode}
+                roleFilterIds={roleFilterIds}
+                setRoleFilterIds={setRoleFilterIds}
+                channelFilterMode={channelFilterMode}
+                setChannelFilterMode={setChannelFilterMode}
+                channelFilterIds={channelFilterIds}
+                setChannelFilterIds={setChannelFilterIds}
+              />
 
               <RoleRewardsCard
                 roles={roles}

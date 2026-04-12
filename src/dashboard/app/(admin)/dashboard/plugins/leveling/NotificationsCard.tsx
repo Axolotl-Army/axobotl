@@ -13,6 +13,9 @@ type NotificationsCardProps = {
   levelUpChannelId: string
   setLevelUpChannelId: (v: string) => void
   defaultMessage: string
+  rewardMessage: string
+  setRewardMessage: (v: string) => void
+  defaultRewardMessage: string
 }
 
 export default function NotificationsCard({
@@ -24,10 +27,22 @@ export default function NotificationsCard({
   levelUpChannelId,
   setLevelUpChannelId,
   defaultMessage,
+  rewardMessage,
+  setRewardMessage,
+  defaultRewardMessage,
 }: NotificationsCardProps) {
   const previewMessage = (levelUpMessage.trim() || defaultMessage)
     .replace(/\{user\}/g, '@User')
     .replace(/\{level\}/g, '5')
+    .replace(/\{old_level\}/g, '4')
+    .replace(/\{xp\}/g, '821')
+    .replace(/\{old_xp\}/g, '810')
+
+  const previewReward = (rewardMessage.trim() || defaultRewardMessage)
+    .replace(/\{user\}/g, '@User')
+    .replace(/\{level\}/g, '5')
+    .replace(/\{role\}/g, '@Veteran')
+    .replace(/\{reward\}/g, ' — access to #veterans')
 
   return (
     <Card className="h-100">
@@ -100,14 +115,49 @@ export default function NotificationsCard({
             maxLength={500}
           />
           <Form.Text className="text-muted">
-            Use <code>{'{user}'}</code> and <code>{'{level}'}</code> as
-            placeholders.
+            Placeholders: <code>{'{user}'}</code>, <code>{'{level}'}</code>,{' '}
+            <code>{'{old_level}'}</code>, <code>{'{xp}'}</code>,{' '}
+            <code>{'{old_xp}'}</code>.
+          </Form.Text>
+        </Form.Group>
+
+        <div className="p-2 rounded bg-dark bg-opacity-25 mb-3">
+          <small className="text-muted d-block mb-1">Preview:</small>
+          <span>{previewMessage}</span>
+        </div>
+
+        <Form.Group className="mb-3">
+          <div className="d-flex align-items-center justify-content-between mb-1">
+            <Form.Label className="fw-semibold mb-0">
+              Role Reward Message Template
+            </Form.Label>
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              onClick={() => setRewardMessage(defaultRewardMessage)}
+              disabled={rewardMessage === defaultRewardMessage}
+            >
+              Reset to default
+            </Button>
+          </div>
+          <Form.Control
+            as="textarea"
+            rows={2}
+            placeholder={defaultRewardMessage}
+            value={rewardMessage}
+            onChange={(e) => setRewardMessage(e.target.value)}
+            maxLength={500}
+          />
+          <Form.Text className="text-muted">
+            Placeholders: <code>{'{user}'}</code>, <code>{'{level}'}</code>,{' '}
+            <code>{'{role}'}</code>, <code>{'{reward}'}</code> (the reward
+            description configured per role).
           </Form.Text>
         </Form.Group>
 
         <div className="p-2 rounded bg-dark bg-opacity-25">
-          <small className="text-muted d-block mb-1">Preview:</small>
-          <span>{previewMessage}</span>
+          <small className="text-muted d-block mb-1">Reward Preview:</small>
+          <span>{previewReward}</span>
         </div>
       </Card.Body>
     </Card>

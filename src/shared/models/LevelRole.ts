@@ -13,8 +13,9 @@ export class LevelRole extends Model<
 > {
   declare guildId: string;
   declare level: number;
-  declare roleId: string;
+  declare roleId: CreationOptional<string | null>;
   declare cumulative: CreationOptional<boolean>;
+  declare description: CreationOptional<string | null>;
   declare readonly createdAt: CreationOptional<Date>;
   declare readonly updatedAt: CreationOptional<Date>;
 }
@@ -34,14 +35,21 @@ LevelRole.init(
     },
     roleId: {
       type: DataTypes.STRING(20),
-      allowNull: false,
-      comment: 'Discord role snowflake ID',
+      allowNull: true,
+      defaultValue: null,
+      comment: 'Discord role snowflake ID (null for role-less milestone rewards)',
     },
     cumulative: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,
       comment: 'If true, role persists through all level-ups',
+    },
+    description: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+      defaultValue: null,
+      comment: 'Free-text description of what this reward grants (used in reward messages)',
     },
     createdAt: DataTypes.DATE,
     updatedAt: DataTypes.DATE,

@@ -22,7 +22,12 @@ export async function GET(
   })
 
   return NextResponse.json(
-    roles.map((r) => ({ level: r.level, roleId: r.roleId, cumulative: r.cumulative ?? false })),
+    roles.map((r) => ({
+      level: r.level,
+      roleId: r.roleId ?? null,
+      cumulative: r.cumulative ?? false,
+      description: r.description ?? null,
+    })),
   )
 }
 
@@ -65,9 +70,13 @@ export async function PUT(
       )
     }
 
-    if (typeof roleId !== 'string' || roleId.length === 0 || roleId.length > 20) {
+    if (
+      roleId !== null &&
+      roleId !== undefined &&
+      (typeof roleId !== 'string' || roleId.length === 0 || roleId.length > 20)
+    ) {
       return NextResponse.json(
-        { error: 'roleId must be a non-empty string (max 20 chars)' },
+        { error: 'roleId must be a string (max 20 chars), null, or omitted' },
         { status: 400 },
       )
     }
@@ -76,6 +85,18 @@ export async function PUT(
     if (cumulative !== undefined && typeof cumulative !== 'boolean') {
       return NextResponse.json(
         { error: 'cumulative must be a boolean' },
+        { status: 400 },
+      )
+    }
+
+    const description = (entry as Record<string, unknown>)['description']
+    if (
+      description !== undefined &&
+      description !== null &&
+      (typeof description !== 'string' || description.length > 200)
+    ) {
+      return NextResponse.json(
+        { error: 'description must be a string (max 200 chars) or null' },
         { status: 400 },
       )
     }
@@ -99,8 +120,9 @@ export async function PUT(
         roles.map((r: Record<string, unknown>) => ({
           guildId: id,
           level: r['level'] as number,
-          roleId: r['roleId'] as string,
+          roleId: (r['roleId'] as string | null | undefined) ?? null,
           cumulative: (r['cumulative'] as boolean) ?? false,
+          description: (r['description'] as string | null | undefined) ?? null,
         })),
         { transaction: t },
       )
@@ -113,7 +135,7 @@ export async function PUT(
   })
 
   // Trigger retroactive cleanup for non-cumulative roles (fire-and-forget)
-  const nonCumulativeRoles = updated.filter((r) => !r.cumulative)
+  const nonCumulativeRoles = updated.filter((r) => r.roleId && !r.cumulative)
   if (nonCumulativeRoles.length > 0) {
     void retroactiveCleanup(id, updated).catch((err) =>
       console.error('[RoleRewards] Retroactive cleanup failed:', err),
@@ -121,18 +143,23 @@ export async function PUT(
   }
 
   return NextResponse.json(
-    updated.map((r) => ({ level: r.level, roleId: r.roleId, cumulative: r.cumulative ?? false })),
+    updated.map((r) => ({
+      level: r.level,
+      roleId: r.roleId,
+      cumulative: r.cumulative ?? false,
+      description: r.description ?? null,
+    })),
   )
 }
 
 const CLEANUP_BATCH_SIZE = 10
 const CLEANUP_BATCH_DELAY_MS = 1500
 
-type RoleMapping = { level: number; roleId: string; cumulative: boolean }
+type RoleMapping = { level: number; roleId: string | null; cumulative: boolean }
 
 async function retroactiveCleanup(
   guildId: string,
-  allRoles: { level: number; roleId: string; cumulative: boolean }[],
+  allRoles: RoleMapping[],
 ): Promise<void> {
   const botToken = process.env['DISCORD_TOKEN']
   if (!botToken) {
@@ -140,8 +167,8 @@ async function retroactiveCleanup(
     return
   }
 
-  const nonCumulative: RoleMapping[] = allRoles
-    .filter((r) => !r.cumulative)
+  const nonCumulative = allRoles
+    .filter((r): r is RoleMapping & { roleId: string } => r.roleId !== null && !r.cumulative)
     .sort((a, b) => a.level - b.level)
 
   if (nonCumulative.length === 0) return

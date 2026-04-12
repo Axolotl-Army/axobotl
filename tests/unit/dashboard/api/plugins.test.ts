@@ -176,7 +176,6 @@ describe('GET /api/v1/guilds/[id]/plugins', () => {
     const leveling = body.find((p) => p.id === 'leveling');
     // cooldownMs is in the default config and was not overridden
     expect(leveling!.config).toHaveProperty('cooldownMs');
-    expect(leveling!.config).toHaveProperty('xpMultiplier');
   });
 
   it('queries plugins only for the requested guild ID', async () => {
@@ -342,22 +341,6 @@ describe('PATCH /api/v1/guilds/[id]/plugins/[pluginId]', () => {
     expect(mockPluginSave).not.toHaveBeenCalled();
   });
 
-  it('returns 400 when xpMultiplier is outside the 0.1-10 range', async () => {
-    mockRequireOwner.mockResolvedValue(null);
-    mockGuildFindByPk.mockResolvedValue({ id: '123456789012345678', name: 'Test Guild' });
-    const row = makePluginRow({ config: { xpMin: 7, xpMax: 13 } });
-    mockPluginFindOrCreate.mockResolvedValue([row, false]);
-
-    const result = await PATCH(
-      makePatchRequest('123456789012345678', 'leveling', { config: { xpMultiplier: 11 } }),
-      makePatchParams('123456789012345678', 'leveling'),
-    );
-    const body = await result.json();
-
-    expect(result.status).toBe(400);
-    expect(body.error).toBe('Invalid value for config.xpMultiplier');
-  });
-
   it('returns 400 when cooldownMs is negative', async () => {
     mockRequireOwner.mockResolvedValue(null);
     mockGuildFindByPk.mockResolvedValue({ id: '123456789012345678', name: 'Test Guild' });
@@ -389,6 +372,60 @@ describe('PATCH /api/v1/guilds/[id]/plugins/[pluginId]', () => {
 
     expect(result.status).toBe(400);
     expect(body.error).toBe('Invalid value for config.levelUpMessage');
+  });
+
+  it('returns 400 when rewardMessage exceeds 500 characters', async () => {
+    mockRequireOwner.mockResolvedValue(null);
+    mockGuildFindByPk.mockResolvedValue({ id: '123456789012345678', name: 'Test Guild' });
+    const row = makePluginRow({ config: { xpMin: 7, xpMax: 13 } });
+    mockPluginFindOrCreate.mockResolvedValue([row, false]);
+
+    const tooLong = 'a'.repeat(501);
+    const result = await PATCH(
+      makePatchRequest('123456789012345678', 'leveling', { config: { rewardMessage: tooLong } }),
+      makePatchParams('123456789012345678', 'leveling'),
+    );
+    const body = await result.json();
+
+    expect(result.status).toBe(400);
+    expect(body.error).toBe('Invalid value for config.rewardMessage');
+  });
+
+  it('accepts rewardMessage=null to clear the reward template', async () => {
+    mockRequireOwner.mockResolvedValue(null);
+    mockGuildFindByPk.mockResolvedValue({ id: '123456789012345678', name: 'Test Guild' });
+    const row = makePluginRow({
+      enabled: true,
+      config: { xpMin: 7, xpMax: 13, rewardMessage: 'old' },
+    });
+    mockPluginFindOrCreate.mockResolvedValue([row, false]);
+    mockPluginSave.mockResolvedValue(undefined);
+
+    const result = await PATCH(
+      makePatchRequest('123456789012345678', 'leveling', { config: { rewardMessage: null } }),
+      makePatchParams('123456789012345678', 'leveling'),
+    );
+
+    expect(result.status).toBe(200);
+    expect(mockPluginSave).toHaveBeenCalledOnce();
+  });
+
+  it('accepts valid rewardMessage with {role} and {reward} placeholders', async () => {
+    mockRequireOwner.mockResolvedValue(null);
+    mockGuildFindByPk.mockResolvedValue({ id: '123456789012345678', name: 'Test Guild' });
+    const row = makePluginRow({ config: { xpMin: 7, xpMax: 13 } });
+    mockPluginFindOrCreate.mockResolvedValue([row, false]);
+    mockPluginSave.mockResolvedValue(undefined);
+
+    const result = await PATCH(
+      makePatchRequest('123456789012345678', 'leveling', {
+        config: { rewardMessage: '{user} earned {role}{reward}' },
+      }),
+      makePatchParams('123456789012345678', 'leveling'),
+    );
+
+    expect(result.status).toBe(200);
+    expect(row.config.rewardMessage).toBe('{user} earned {role}{reward}');
   });
 
   it('accepts levelUpMessage=null to clear the message', async () => {
@@ -462,5 +499,92 @@ describe('PATCH /api/v1/guilds/[id]/plugins/[pluginId]', () => {
     expect(body.id).toBe('leveling');
     expect(body).toHaveProperty('enabled');
     expect(body).toHaveProperty('config');
+  });
+
+  // Regression: Sequelize JSONB dirty-tracking relies on reference equality.
+  // Mutating row.config in place left the reference unchanged, so save() was
+  // a no-op and the dashboard would silently fail to persist settings.
+  it('assigns a NEW config object reference so Sequelize detects the JSONB change', async () => {
+    mockRequireOwner.mockResolvedValue(null);
+    mockGuildFindByPk.mockResolvedValue({ id: '123456789012345678', name: 'Test Guild' });
+
+    const originalConfig = { xpMin: 7, xpMax: 13 };
+    const row = makePluginRow({
+      pluginId: 'leveling',
+      enabled: true,
+      config: originalConfig,
+    });
+    mockPluginFindOrCreate.mockResolvedValue([row, false]);
+    mockPluginSave.mockResolvedValue(undefined);
+
+    await PATCH(
+      makePatchRequest('123456789012345678', 'leveling', {
+        config: { xpMin: 10 },
+      }),
+      makePatchParams('123456789012345678', 'leveling'),
+    );
+
+    // Row should have been saved
+    expect(mockPluginSave).toHaveBeenCalledOnce();
+    // The new config must be a DIFFERENT reference so Sequelize marks it dirty
+    expect(row['config']).not.toBe(originalConfig);
+    // The update must have been applied
+    expect((row['config'] as Record<string, unknown>)['xpMin']).toBe(10);
+    // Previous values must be preserved (shallow merge)
+    expect((row['config'] as Record<string, unknown>)['xpMax']).toBe(13);
+    // The original object must be unmodified (proves we cloned before mutating)
+    expect(originalConfig).toEqual({ xpMin: 7, xpMax: 13 });
+  });
+
+  it('preserves the original config reference when no config is sent (only enabled toggle)', async () => {
+    mockRequireOwner.mockResolvedValue(null);
+    mockGuildFindByPk.mockResolvedValue({ id: '123456789012345678', name: 'Test Guild' });
+
+    const originalConfig = { xpMin: 7, xpMax: 13 };
+    const row = makePluginRow({
+      pluginId: 'leveling',
+      enabled: false,
+      config: originalConfig,
+    });
+    mockPluginFindOrCreate.mockResolvedValue([row, false]);
+    mockPluginSave.mockResolvedValue(undefined);
+
+    await PATCH(
+      makePatchRequest('123456789012345678', 'leveling', { enabled: true }),
+      makePatchParams('123456789012345678', 'leveling'),
+    );
+
+    // When no config is sent, the config object must remain untouched
+    expect(row['config']).toBe(originalConfig);
+    expect(row['enabled']).toBe(true);
+  });
+
+  it('persists array config values (roleFilterIds, channelFilterIds)', async () => {
+    mockRequireOwner.mockResolvedValue(null);
+    mockGuildFindByPk.mockResolvedValue({ id: '123456789012345678', name: 'Test Guild' });
+
+    const row = makePluginRow({ config: {} });
+    mockPluginFindOrCreate.mockResolvedValue([row, false]);
+    mockPluginSave.mockResolvedValue(undefined);
+
+    const result = await PATCH(
+      makePatchRequest('123456789012345678', 'leveling', {
+        config: {
+          roleFilterMode: 'exclude',
+          roleFilterIds: ['111', '222'],
+          channelFilterMode: 'include',
+          channelFilterIds: ['333'],
+        },
+      }),
+      makePatchParams('123456789012345678', 'leveling'),
+    );
+
+    expect(result.status).toBe(200);
+    expect(mockPluginSave).toHaveBeenCalledOnce();
+    const savedConfig = row['config'] as Record<string, unknown>;
+    expect(savedConfig['roleFilterMode']).toBe('exclude');
+    expect(savedConfig['roleFilterIds']).toEqual(['111', '222']);
+    expect(savedConfig['channelFilterMode']).toBe('include');
+    expect(savedConfig['channelFilterIds']).toEqual(['333']);
   });
 });

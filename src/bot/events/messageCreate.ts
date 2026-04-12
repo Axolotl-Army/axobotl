@@ -8,8 +8,13 @@ import {
   randomXp,
   computeXpUpdate,
   formatLevelUpMessage,
+  formatRewardMessage,
   computeRoleRewardActions,
+  passesChannelFilter,
+  passesRoleFilter,
+  computeRoleMultiplier,
 } from '../utils/levelUtils';
+import type { RoleMultiplierEntry, RoleMultiplierMode } from '../utils/levelUtils';
 import { pluginCache } from '../plugins';
 
 const messageCreateEvent: BotEvent = {
@@ -28,15 +33,40 @@ const messageCreateEvent: BotEvent = {
 
     // Load plugin config
     const config = await pluginCache.getConfig(guildId, 'leveling');
+
+    // Channel filter — check before anything else (no member fetch needed)
+    const channelFilterMode = (config['channelFilterMode'] as 'include' | 'exclude') ?? 'include';
+    const channelFilterIds = (config['channelFilterIds'] as string[]) ?? [];
+    if (!passesChannelFilter(message.channelId, channelFilterMode, channelFilterIds)) return;
+
+    // Role filter and role multipliers both need member roles — fetch once
+    const roleFilterMode = (config['roleFilterMode'] as 'include' | 'exclude') ?? 'include';
+    const roleFilterIds = (config['roleFilterIds'] as string[]) ?? [];
+    const roleMultipliers = (config['roleMultipliers'] as RoleMultiplierEntry[]) ?? [];
+    const roleMultiplierMode = (config['roleMultiplierMode'] as RoleMultiplierMode) ?? 'highest';
+
+    const needsMember = roleFilterIds.length > 0 || roleMultipliers.length > 0;
+    let memberRoleIds: Set<string> | null = null;
+
+    if (needsMember) {
+      const member = message.member ?? await message.guild?.members.fetch(userId).catch(() => null);
+      if (!member) return;
+      memberRoleIds = new Set(member.roles.cache.keys());
+
+      if (roleFilterIds.length > 0 && !passesRoleFilter(memberRoleIds, roleFilterMode, roleFilterIds)) return;
+    }
+
     const xpMin = (config['xpMin'] as number) ?? 7;
     const xpMax = (config['xpMax'] as number) ?? 13;
     const cooldownMs = (config['cooldownMs'] as number) ?? 60000;
-    const xpMultiplier = (config['xpMultiplier'] as number) ?? 1.0;
 
     if (isOnCooldown(guildId, userId, Date.now(), cooldownMs)) return;
 
     const rawXp = randomXp(xpMin, xpMax);
-    const xpToAdd = Math.round(rawXp * xpMultiplier);
+    const roleMultiplier = memberRoleIds && roleMultipliers.length > 0
+      ? computeRoleMultiplier(memberRoleIds, roleMultipliers, roleMultiplierMode)
+      : 1.0;
+    const xpToAdd = Math.round(rawXp * roleMultiplier);
 
     try {
       const [record] = await UserLevel.findOrCreate({
@@ -44,6 +74,7 @@ const messageCreateEvent: BotEvent = {
         defaults: { guildId, userId, xp: 0, level: 0, lastXpAt: null },
       });
 
+      const oldXp = record.xp;
       const result = computeXpUpdate(record.xp, xpToAdd);
 
       await record.update({
@@ -76,12 +107,19 @@ const messageCreateEvent: BotEvent = {
         }
 
         for (const lvl of result.levelsToAnnounce) {
-          const msg = formatLevelUpMessage(template, userMention, lvl);
+          const msg = formatLevelUpMessage(template, {
+            userMention,
+            level: lvl,
+            oldLevel: result.oldLevel,
+            xp: result.newXp,
+            oldXp,
+          });
           await targetChannel.send(msg);
         }
 
         // Award role rewards for all levels up to the new level
-        await awardRoleRewards(message, guildId, userId, result.newLevel);
+        const rewardTemplate = (config['rewardMessage'] as string | null) ?? null;
+        await awardRoleRewards(message, guildId, userId, result.newLevel, result.levelsGained, targetChannel, rewardTemplate);
       }
     } catch (err) {
       console.error('[Leveling] Failed to process XP for message:', err);
@@ -94,6 +132,9 @@ async function awardRoleRewards(
   guildId: string,
   userId: string,
   currentLevel: number,
+  levelsGained: number[],
+  targetChannel: { send: (content: string) => Promise<unknown> },
+  rewardTemplate: string | null,
 ): Promise<void> {
   if (!message.guild) return;
 
@@ -114,11 +155,59 @@ async function awardRoleRewards(
       memberRoleIds,
     );
 
+    const descriptionByRoleId = new Map<string, string>();
+    const levelByRoleId = new Map<string, number>();
+    for (const lr of levelRoles) {
+      if (lr.roleId) {
+        descriptionByRoleId.set(lr.roleId, lr.description ?? '');
+        levelByRoleId.set(lr.roleId, lr.level);
+      }
+    }
+
     for (const roleId of toAdd) {
       try {
         await member.roles.add(roleId);
+
+        const role = message.guild.roles.cache.get(roleId) ?? await message.guild.roles.fetch(roleId).catch(() => null);
+        const roleName = role?.name ?? 'role';
+        const roleMention = role ? `<@&${roleId}>` : roleName;
+
+        const rewardMsg = formatRewardMessage(rewardTemplate, {
+          userMention: `<@${userId}>`,
+          level: levelByRoleId.get(roleId) ?? currentLevel,
+          roleMention,
+          roleName,
+          reward: descriptionByRoleId.get(roleId) ?? '',
+        });
+
+        try {
+          await targetChannel.send(rewardMsg);
+        } catch (err) {
+          console.warn(`[Leveling] Failed to send reward message for role ${roleId}:`, err);
+        }
       } catch (err) {
         console.warn(`[Leveling] Failed to assign role ${roleId} to ${userId}:`, err);
+      }
+    }
+
+    // Announce role-less milestone rewards for levels just crossed
+    const gainedSet = new Set(levelsGained);
+    const earnedMilestones = levelRoles.filter(
+      (lr) => lr.roleId === null && gainedSet.has(lr.level),
+    );
+    for (const milestone of earnedMilestones) {
+      if (!milestone.description?.trim()) continue;
+      const rewardMsg = formatRewardMessage(rewardTemplate, {
+        userMention: `<@${userId}>`,
+        level: milestone.level,
+        roleMention: '',
+        roleName: '',
+        reward: milestone.description.trim(),
+      });
+      try {
+        await targetChannel.send(rewardMsg);
+      } catch (err) {
+        console.warn(`[Leveling] Failed to send milestone message for level ${milestone.level}:`, err);
       }
     }
 

@@ -86,6 +86,7 @@ export const command: SlashCommand = {
       defaults: { guildId, userId: target.id, xp: 0, level: 0, lastXpAt: null },
     });
 
+    const oldXp = record.xp;
     let result: ReturnType<typeof computeXpUpdate>;
 
     if (sub === 'add') {
@@ -119,7 +120,13 @@ export const command: SlashCommand = {
       const userMention = `<@${target.id}>`;
 
       for (const lvl of result.levelsToAnnounce) {
-        const msg = formatLevelUpMessage(template, userMention, lvl);
+        const msg = formatLevelUpMessage(template, {
+          userMention,
+          level: lvl,
+          oldLevel: result.oldLevel,
+          xp: result.newXp,
+          oldXp,
+        });
         await interaction.followUp({ content: msg });
       }
     }
