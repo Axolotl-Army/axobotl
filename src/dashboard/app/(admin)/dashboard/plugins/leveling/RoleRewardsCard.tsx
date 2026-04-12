@@ -11,7 +11,12 @@ import DataTable from '@/components/table/DataTable'
 import { basePath } from '@/helpers'
 
 type DiscordRole = { id: string; name: string; color: number }
-type LevelRoleEntry = { level: number; roleId: string; cumulative: boolean }
+type LevelRoleEntry = {
+  level: number
+  roleId: string | null
+  cumulative: boolean
+  description: string | null
+}
 
 type RoleRewardsCardProps = {
   roles: DiscordRole[]
@@ -28,9 +33,13 @@ export default function RoleRewardsCard({
 }: RoleRewardsCardProps) {
   const [newRoleLevel, setNewRoleLevel] = useState('')
   const [newRoleId, setNewRoleId] = useState('')
+  const [newRoleDescription, setNewRoleDescription] = useState('')
 
   const roleName = useCallback(
-    (roleId: string) => roles.find((r) => r.id === roleId)?.name ?? roleId,
+    (roleId: string | null) => {
+      if (!roleId) return '(no role)'
+      return roles.find((r) => r.id === roleId)?.name ?? roleId
+    },
     [roles],
   )
 
@@ -39,6 +48,19 @@ export default function RoleRewardsCard({
       setLevelRoles((prev) =>
         prev.map((lr) =>
           lr.level === level ? { ...lr, cumulative: !lr.cumulative } : lr,
+        ),
+      )
+    },
+    [setLevelRoles],
+  )
+
+  const updateDescription = useCallback(
+    (level: number, description: string) => {
+      setLevelRoles((prev) =>
+        prev.map((lr) =>
+          lr.level === level
+            ? { ...lr, description: description.trim() === '' ? null : description }
+            : lr,
         ),
       )
     },
@@ -54,17 +76,20 @@ export default function RoleRewardsCard({
 
   const addRoleReward = useCallback(() => {
     const level = parseInt(newRoleLevel, 10)
-    if (!level || level < 1 || level > 100 || !newRoleId) return
+    if (!level || level < 1 || level > 100) return
     if (levelRoles.some((lr) => lr.level === level)) return
 
+    const description = newRoleDescription.trim() === '' ? null : newRoleDescription.trim()
     setLevelRoles((prev) =>
-      [...prev, { level, roleId: newRoleId, cumulative: false }].sort(
-        (a, b) => a.level - b.level,
-      ),
+      [
+        ...prev,
+        { level, roleId: newRoleId || null, cumulative: false, description },
+      ].sort((a, b) => a.level - b.level),
     )
     setNewRoleLevel('')
     setNewRoleId('')
-  }, [newRoleLevel, newRoleId, levelRoles, setLevelRoles])
+    setNewRoleDescription('')
+  }, [newRoleLevel, newRoleId, newRoleDescription, levelRoles, setLevelRoles])
 
   const columns = useMemo(
     () => [
@@ -75,6 +100,20 @@ export default function RoleRewardsCard({
       columnHelper.accessor('roleId', {
         header: 'Role',
         cell: ({ getValue }) => roleName(getValue()),
+        enableSorting: false,
+      }),
+      columnHelper.accessor('description', {
+        header: 'Reward description',
+        cell: ({ row }) => (
+          <Form.Control
+            type="text"
+            size="sm"
+            placeholder="e.g. access to #veterans"
+            value={row.original.description ?? ''}
+            onChange={(e) => updateDescription(row.original.level, e.target.value)}
+            maxLength={200}
+          />
+        ),
         enableSorting: false,
       }),
       columnHelper.accessor('cumulative', {
@@ -106,7 +145,7 @@ export default function RoleRewardsCard({
         meta: { className: 'text-end' },
       }),
     ],
-    [roleName, toggleCumulative, removeRoleReward],
+    [roleName, toggleCumulative, removeRoleReward, updateDescription],
   )
 
   const table = useReactTable({
@@ -154,7 +193,7 @@ export default function RoleRewardsCard({
             />
           </Form.Group>
 
-          <Form.Group className="flex-grow-1">
+          <Form.Group style={{ minWidth: '180px' }}>
             <Form.Label className="fw-semibold small mb-1">Role</Form.Label>
             <Form.Select
               value={newRoleId}
@@ -169,12 +208,24 @@ export default function RoleRewardsCard({
             </Form.Select>
           </Form.Group>
 
+          <Form.Group className="flex-grow-1">
+            <Form.Label className="fw-semibold small mb-1">
+              Reward description (optional)
+            </Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="e.g. access to #veterans"
+              value={newRoleDescription}
+              onChange={(e) => setNewRoleDescription(e.target.value)}
+              maxLength={200}
+            />
+          </Form.Group>
+
           <Button
             variant="outline-primary"
             onClick={addRoleReward}
             disabled={
               !newRoleLevel ||
-              !newRoleId ||
               levelRoles.some(
                 (lr) => lr.level === parseInt(newRoleLevel, 10),
               )

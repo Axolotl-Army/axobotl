@@ -15,6 +15,7 @@ import { command as rankCommand } from './commands/rank';
 import { command as leaderboardCommand } from './commands/leaderboard';
 import { command as xpCommand } from './commands/xp';
 import { command as levelconfigCommand } from './commands/levelconfig';
+import { command as rewardsCommand } from './commands/rewards';
 
 // Events
 import readyEvent from './events/ready';
@@ -31,14 +32,13 @@ registerPlugin({
   id: 'leveling',
   name: 'Leveling',
   description: 'Track XP from messages, level up, and earn role rewards',
-  commands: [rankCommand, leaderboardCommand, xpCommand, levelconfigCommand],
+  commands: [rankCommand, leaderboardCommand, xpCommand, levelconfigCommand, rewardsCommand],
   defaultConfig: {
     levelUpMessage: null,
     levelUpChannelId: null,
     xpMin: 7,
     xpMax: 13,
     cooldownMs: 60000,
-    xpMultiplier: 1.0,
   },
 });
 
@@ -66,6 +66,7 @@ const allCommands = new Map<string, SlashCommand>([
   ['leaderboard', leaderboardCommand],
   ['xp', xpCommand],
   ['levelconfig', levelconfigCommand],
+  ['rewards', rewardsCommand],
 ]);
 
 // ── Event registration ──────────────────────────────────────────────

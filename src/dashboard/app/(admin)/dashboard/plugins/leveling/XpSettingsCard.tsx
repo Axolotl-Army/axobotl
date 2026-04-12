@@ -9,8 +9,6 @@ type XpSettingsCardProps = {
   setXpMax: (v: number) => void
   cooldownMs: number
   setCooldownMs: (v: number) => void
-  xpMultiplier: number
-  setXpMultiplier: (v: number) => void
 }
 
 export default function XpSettingsCard({
@@ -20,8 +18,6 @@ export default function XpSettingsCard({
   setXpMax,
   cooldownMs,
   setCooldownMs,
-  xpMultiplier,
-  setXpMultiplier,
 }: XpSettingsCardProps) {
   return (
     <Card className="h-100">
@@ -79,24 +75,6 @@ export default function XpSettingsCard({
           </Form.Text>
         </Form.Group>
 
-        <Form.Group className="mb-3">
-          <Form.Label className="fw-semibold">
-            XP Multiplier
-          </Form.Label>
-          <Form.Control
-            type="number"
-            min={0.1}
-            max={10}
-            step={0.1}
-            value={xpMultiplier}
-            onChange={(e) =>
-              setXpMultiplier(parseFloat(e.target.value) || 1.0)
-            }
-          />
-          <Form.Text className="text-muted">
-            Multiply all XP gains by this value (0.1 - 10.0).
-          </Form.Text>
-        </Form.Group>
       </Card.Body>
     </Card>
   )

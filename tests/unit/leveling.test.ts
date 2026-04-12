@@ -3,11 +3,14 @@ import {
   getLevelFromXp,
   getXpForLevel,
   formatLevelUpMessage,
+  formatRewardMessage,
   isOnCooldown,
   recordXpAwarded,
   clearCooldownStore,
   computeXpUpdate,
+  computeRoleMultiplier,
   DEFAULT_LEVEL_UP_MESSAGE,
+  DEFAULT_REWARD_MESSAGE,
   MAX_LEVEL_UP_ANNOUNCEMENTS,
   XP_MAX_VALUE,
 } from '../../src/bot/utils/levelUtils';
@@ -105,34 +108,119 @@ describe('level/xp round-trip', () => {
 // ── formatLevelUpMessage ─────────────────────────────────────────────────────
 
 describe('formatLevelUpMessage', () => {
+  const ctx = (overrides = {}) => ({
+    userMention: '<@123>',
+    level: 5,
+    oldLevel: 4,
+    xp: 821,
+    oldXp: 810,
+    ...overrides,
+  });
+
   it('should replace {user} placeholder with the user mention', () => {
-    const result = formatLevelUpMessage('Hello {user}!', '<@123>', 5);
+    const result = formatLevelUpMessage('Hello {user}!', ctx());
     expect(result).toBe('Hello <@123>!');
   });
 
   it('should replace {level} placeholder with the level number', () => {
-    const result = formatLevelUpMessage('You reached {level}!', '<@123>', 7);
+    const result = formatLevelUpMessage('You reached {level}!', ctx({ level: 7 }));
     expect(result).toBe('You reached 7!');
   });
 
-  it('should replace both placeholders in the same template', () => {
-    const result = formatLevelUpMessage('GG {user}, level {level}!', '<@456>', 3);
-    expect(result).toBe('GG <@456>, level 3!');
+  it('should replace {old_level} placeholder with the previous level', () => {
+    const result = formatLevelUpMessage('{old_level} -> {level}', ctx({ oldLevel: 44, level: 45 }));
+    expect(result).toBe('44 -> 45');
+  });
+
+  it('should replace {xp} and {old_xp} placeholders', () => {
+    const result = formatLevelUpMessage('{old_xp} -> {xp}', ctx({ oldXp: 1330, xp: 1345 }));
+    expect(result).toBe('1330 -> 1345');
+  });
+
+  it('should replace all placeholders together', () => {
+    const result = formatLevelUpMessage(
+      '{user} went from {old_level} ({old_xp}) to {level} ({xp})',
+      ctx({ userMention: '<@456>', oldLevel: 4, level: 5, oldXp: 810, xp: 821 }),
+    );
+    expect(result).toBe('<@456> went from 4 (810) to 5 (821)');
+  });
+
+  it('should not treat {level} inside {old_level} as a separate replacement', () => {
+    // {old_level} must be replaced before {level} to avoid partial corruption
+    const result = formatLevelUpMessage('{old_level}/{level}', ctx({ oldLevel: 4, level: 5 }));
+    expect(result).toBe('4/5');
   });
 
   it('should use the default template when template is null', () => {
-    const result = formatLevelUpMessage(null, '<@789>', 2);
-    expect(result).toBe(DEFAULT_LEVEL_UP_MESSAGE.replace('{user}', '<@789>').replace('{level}', '2'));
+    const result = formatLevelUpMessage(null, ctx({ userMention: '<@789>', level: 2 }));
+    expect(result).toBe('GG <@789>, you reached **level 2**!');
   });
 
   it('should use the default template when template is an empty string', () => {
-    const result = formatLevelUpMessage('', '<@789>', 2);
-    expect(result).toBe(DEFAULT_LEVEL_UP_MESSAGE.replace('{user}', '<@789>').replace('{level}', '2'));
+    const result = formatLevelUpMessage('', ctx({ userMention: '<@789>', level: 2 }));
+    expect(result).toBe('GG <@789>, you reached **level 2**!');
   });
 
-  it('should produce the default format: "GG @user, you reached **level N**!"', () => {
-    const result = formatLevelUpMessage(null, '<@111>', 10);
+  it('should produce the default format', () => {
+    const result = formatLevelUpMessage(null, ctx({ userMention: '<@111>', level: 10 }));
     expect(result).toBe('GG <@111>, you reached **level 10**!');
+  });
+
+  it('exposes DEFAULT_LEVEL_UP_MESSAGE matching the actual default', () => {
+    expect(DEFAULT_LEVEL_UP_MESSAGE).toBe('GG {user}, you reached **level {level}**!');
+  });
+});
+
+// ── formatRewardMessage ──────────────────────────────────────────────────────
+
+describe('formatRewardMessage', () => {
+  const ctx = (overrides = {}) => ({
+    userMention: '<@123>',
+    level: 5,
+    roleMention: '<@&999>',
+    roleName: 'Veteran',
+    reward: '',
+    ...overrides,
+  });
+
+  it('should use the default template when template is null', () => {
+    const result = formatRewardMessage(null, ctx());
+    expect(result).toBe('<@123> earned a new role reward: **<@&999>**');
+  });
+
+  it('should append reward description with em-dash when present', () => {
+    const result = formatRewardMessage(null, ctx({ reward: 'access to #veterans' }));
+    expect(result).toBe('<@123> earned a new role reward: **<@&999>** — access to #veterans');
+  });
+
+  it('should replace {user}, {level}, {role}, {reward} in custom template', () => {
+    const result = formatRewardMessage(
+      '{user} at level {level}: {role}{reward}',
+      ctx({ level: 10, reward: 'can post pics' }),
+    );
+    expect(result).toBe('<@123> at level 10: <@&999> — can post pics');
+  });
+
+  it('should replace {reward} with empty string when no description', () => {
+    const result = formatRewardMessage(
+      '{user} got {role}{reward}!',
+      ctx({ reward: '' }),
+    );
+    expect(result).toBe('<@123> got <@&999>!');
+  });
+
+  it('should fall back to role name when role mention is empty', () => {
+    const result = formatRewardMessage('{role}', ctx({ roleMention: '', roleName: 'Veteran' }));
+    expect(result).toBe('Veteran');
+  });
+
+  it('should use default when template is empty string', () => {
+    const result = formatRewardMessage('', ctx({ reward: 'access' }));
+    expect(result).toBe('<@123> earned a new role reward: **<@&999>** — access');
+  });
+
+  it('exposes DEFAULT_REWARD_MESSAGE matching the actual default', () => {
+    expect(DEFAULT_REWARD_MESSAGE).toBe('{user} earned a new role reward: **{role}**{reward}');
   });
 });
 
@@ -246,5 +334,73 @@ describe('business rules', () => {
   it('should not allow XP to exceed the PostgreSQL INTEGER max (2,147,483,647)', () => {
     const result = computeXpUpdate(XP_MAX_VALUE, 1);
     expect(result.newXp).toBe(XP_MAX_VALUE);
+  });
+});
+
+// ── computeRoleMultiplier ────────────────────────────────────────────────────
+
+describe('computeRoleMultiplier', () => {
+  const multipliers = [
+    { roleId: 'booster', multiplier: 1.5 },
+    { roleId: 'vip', multiplier: 2.0 },
+    { roleId: 'patron', multiplier: 3.0 },
+  ];
+
+  it('should return 1.0 when no roles match', () => {
+    const memberRoles = new Set(['other']);
+    expect(computeRoleMultiplier(memberRoles, multipliers, 'highest')).toBe(1.0);
+  });
+
+  it('should return 1.0 when multipliers array is empty', () => {
+    const memberRoles = new Set(['booster']);
+    expect(computeRoleMultiplier(memberRoles, [], 'highest')).toBe(1.0);
+  });
+
+  it('should return the single matching multiplier', () => {
+    const memberRoles = new Set(['booster']);
+    expect(computeRoleMultiplier(memberRoles, multipliers, 'highest')).toBe(1.5);
+  });
+
+  describe('highest mode', () => {
+    it('should return the highest multiplier among matched roles', () => {
+      const memberRoles = new Set(['booster', 'vip']);
+      expect(computeRoleMultiplier(memberRoles, multipliers, 'highest')).toBe(2.0);
+    });
+
+    it('should return the highest even with all roles', () => {
+      const memberRoles = new Set(['booster', 'vip', 'patron']);
+      expect(computeRoleMultiplier(memberRoles, multipliers, 'highest')).toBe(3.0);
+    });
+  });
+
+  describe('multiply mode', () => {
+    it('should multiply matched multipliers together', () => {
+      const memberRoles = new Set(['booster', 'vip']);
+      expect(computeRoleMultiplier(memberRoles, multipliers, 'multiply')).toBeCloseTo(3.0);
+    });
+
+    it('should multiply all three', () => {
+      const memberRoles = new Set(['booster', 'vip', 'patron']);
+      expect(computeRoleMultiplier(memberRoles, multipliers, 'multiply')).toBeCloseTo(9.0);
+    });
+  });
+
+  describe('additive mode', () => {
+    it('should sum the bonus portions', () => {
+      // 1 + (1.5-1) + (2.0-1) = 1 + 0.5 + 1.0 = 2.5
+      const memberRoles = new Set(['booster', 'vip']);
+      expect(computeRoleMultiplier(memberRoles, multipliers, 'additive')).toBeCloseTo(2.5);
+    });
+
+    it('should sum all three bonus portions', () => {
+      // 1 + 0.5 + 1.0 + 2.0 = 4.5
+      const memberRoles = new Set(['booster', 'vip', 'patron']);
+      expect(computeRoleMultiplier(memberRoles, multipliers, 'additive')).toBeCloseTo(4.5);
+    });
+  });
+
+  it('should default to highest mode when mode is omitted', () => {
+    const memberRoles = new Set(['booster', 'vip']);
+    expect(computeRoleMultiplier(memberRoles, multipliers)).toBe(2.0);
   });
 });

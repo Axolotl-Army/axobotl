@@ -4,6 +4,7 @@ const COOLDOWN_MS = 60_000;
 const XP_MIN = 7;
 const XP_MAX = 13;
 const DEFAULT_LEVEL_UP_MESSAGE = 'GG {user}, you reached **level {level}**!';
+const DEFAULT_REWARD_MESSAGE = '{user} earned a new role reward: **{role}**{reward}';
 const MAX_LEVEL_UP_ANNOUNCEMENTS = 5;
 // PostgreSQL INTEGER max — xp column type upper bound
 const XP_MAX_VALUE = 2_147_483_647;
@@ -15,14 +16,59 @@ export { getXpForLevel, getLevelFromXp };
 
 // ── Message formatting ────────────────────────────────────────────────────────
 
-/** Formats the level-up message, substituting {user} and {level} placeholders. */
+export interface LevelUpFormatContext {
+  userMention: string;
+  level: number;
+  oldLevel: number;
+  xp: number;
+  oldXp: number;
+}
+
+/**
+ * Formats the level-up message. Supports placeholders:
+ * {user}, {level}, {old_level}, {xp}, {old_xp}
+ */
 export function formatLevelUpMessage(
   template: string | null | undefined,
-  userMention: string,
-  level: number,
+  ctx: LevelUpFormatContext,
 ): string {
   const tpl = template?.trim() || DEFAULT_LEVEL_UP_MESSAGE;
-  return tpl.replace(/\{user\}/g, userMention).replace(/\{level\}/g, String(level));
+  return tpl
+    .replace(/\{user\}/g, ctx.userMention)
+    .replace(/\{old_level\}/g, String(ctx.oldLevel))
+    .replace(/\{level\}/g, String(ctx.level))
+    .replace(/\{old_xp\}/g, String(ctx.oldXp))
+    .replace(/\{xp\}/g, String(ctx.xp));
+}
+
+export interface RewardFormatContext {
+  userMention: string;
+  level: number;
+  roleMention: string;
+  roleName: string;
+  /** Free-text description configured per reward. Empty string if none. */
+  reward: string;
+}
+
+/**
+ * Formats the reward message. Supports placeholders:
+ * {user}, {level}, {role}, {reward}
+ * When {reward} is used and the description is empty, the placeholder is
+ * replaced with an empty string (allowing templates like "...: {reward}" to
+ * gracefully degrade).
+ */
+export function formatRewardMessage(
+  template: string | null | undefined,
+  ctx: RewardFormatContext,
+): string {
+  const tpl = template?.trim() || DEFAULT_REWARD_MESSAGE;
+  // Prepend a space to non-empty reward so default template reads well
+  const rewardText = ctx.reward.trim() ? ` — ${ctx.reward.trim()}` : '';
+  return tpl
+    .replace(/\{user\}/g, ctx.userMention)
+    .replace(/\{level\}/g, String(ctx.level))
+    .replace(/\{role\}/g, ctx.roleMention || ctx.roleName)
+    .replace(/\{reward\}/g, rewardText);
 }
 
 // ── XP update computation ─────────────────────────────────────────────────────
@@ -111,9 +157,42 @@ export function randomXp(min = XP_MIN, max = XP_MAX): number {
 
 // ── Role reward decisions ────────────────────────────────────────────────────
 
+// ── Role XP multipliers ─────────────────────────────────────────────────────
+
+export type RoleMultiplierEntry = {
+  roleId: string;
+  multiplier: number;
+};
+
+export type RoleMultiplierMode = 'highest' | 'multiply' | 'additive';
+
+/**
+ * Computes the effective XP multiplier based on a member's roles and the
+ * configured per-role multipliers. Returns 1.0 when no roles match.
+ */
+export function computeRoleMultiplier(
+  memberRoleIds: Set<string>,
+  roleMultipliers: RoleMultiplierEntry[],
+  mode: RoleMultiplierMode = 'highest',
+): number {
+  const matched = roleMultipliers.filter((rm) => memberRoleIds.has(rm.roleId));
+  if (matched.length === 0) return 1.0;
+
+  switch (mode) {
+    case 'highest':
+      return Math.max(...matched.map((rm) => rm.multiplier));
+    case 'multiply':
+      return matched.reduce((acc, rm) => acc * rm.multiplier, 1.0);
+    case 'additive':
+      return 1 + matched.reduce((acc, rm) => acc + (rm.multiplier - 1), 0);
+  }
+}
+
+// ── Role reward decisions ────────────────────────────────────────────────────
+
 export type RoleRewardEntry = {
   level: number;
-  roleId: string;
+  roleId: string | null;
   cumulative: boolean;
 };
 
@@ -137,13 +216,16 @@ export function computeRoleRewardActions(
   const sorted = [...roleRewards].sort((a, b) => a.level - b.level);
   const earned = sorted.filter((r) => r.level <= currentLevel);
 
+  // Only consider entries that have an actual role assigned
+  const earnedWithRole = earned.filter((r): r is RoleRewardEntry & { roleId: string } => r.roleId !== null);
+
   // Roles to add: all earned roles the user doesn't have yet
-  const toAdd = earned
+  const toAdd = earnedWithRole
     .filter((r) => !memberRoleIds.has(r.roleId))
     .map((r) => r.roleId);
 
   // Non-cumulative removal: find highest earned non-cumulative, remove all below it
-  const earnedNonCum = earned.filter((r) => !r.cumulative);
+  const earnedNonCum = earnedWithRole.filter((r) => !r.cumulative);
   const toRemove: string[] = [];
 
   if (earnedNonCum.length > 1) {
@@ -158,4 +240,28 @@ export function computeRoleRewardActions(
   return { toAdd, toRemove };
 }
 
-export { DEFAULT_LEVEL_UP_MESSAGE, COOLDOWN_MS, XP_MIN, XP_MAX, MAX_LEVEL_UP_ANNOUNCEMENTS, XP_MAX_VALUE };
+// ── XP filter checks ─────────────────────────────────────────────────────────
+
+/** Returns true if the user's roles pass the configured role filter. */
+export function passesRoleFilter(
+  memberRoleIds: Set<string>,
+  mode: 'include' | 'exclude',
+  filterIds: string[],
+): boolean {
+  if (filterIds.length === 0) return true;
+  const hasMatch = filterIds.some((id) => memberRoleIds.has(id));
+  return mode === 'include' ? hasMatch : !hasMatch;
+}
+
+/** Returns true if the channel passes the configured channel filter. */
+export function passesChannelFilter(
+  channelId: string,
+  mode: 'include' | 'exclude',
+  filterIds: string[],
+): boolean {
+  if (filterIds.length === 0) return true;
+  const isListed = filterIds.includes(channelId);
+  return mode === 'include' ? isListed : !isListed;
+}
+
+export { DEFAULT_LEVEL_UP_MESSAGE, DEFAULT_REWARD_MESSAGE, COOLDOWN_MS, XP_MIN, XP_MAX, MAX_LEVEL_UP_ANNOUNCEMENTS, XP_MAX_VALUE };

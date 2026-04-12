@@ -15,7 +15,6 @@ const PLUGIN_DEFINITIONS = [
       xpMin: 7,
       xpMax: 13,
       cooldownMs: 60000,
-      xpMultiplier: 1.0,
     },
   },
 ]

@@ -42,7 +42,13 @@ export const command: SlashCommand = {
       config: { ...currentConfig, levelUpMessage: newTemplate },
     });
 
-    const preview = formatLevelUpMessage(newTemplate, `<@${interaction.user.id}>`, 5);
+    const preview = formatLevelUpMessage(newTemplate, {
+      userMention: `<@${interaction.user.id}>`,
+      level: 5,
+      oldLevel: 4,
+      xp: 821,
+      oldXp: 810,
+    });
 
     const title = isReset ? 'Level-Up Message Reset' : 'Level-Up Message Updated';
 
