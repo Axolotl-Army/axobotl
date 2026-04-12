@@ -159,7 +159,7 @@ type RoleMapping = { level: number; roleId: string | null; cumulative: boolean }
 
 async function retroactiveCleanup(
   guildId: string,
-  allRoles: { level: number; roleId: string; cumulative: boolean }[],
+  allRoles: RoleMapping[],
 ): Promise<void> {
   const botToken = process.env['DISCORD_TOKEN']
   if (!botToken) {
