@@ -37,11 +37,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@v4
         with:
           version: 10.33.0
 
@@ -54,12 +54,6 @@ jobs:
           path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: ${{ runner.os }}-pnpm-
-
-      - name: Debug pnpm config
-        run: |
-          pnpm --version
-          cat pnpm-lock.yaml | head -15
-          pnpm config list
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
