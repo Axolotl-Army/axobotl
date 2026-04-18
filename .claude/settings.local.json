@@ -67,7 +67,9 @@
       "Bash(pnpm exec:*)",
       "Skill(update-config)",
       "mcp__github__get_me",
-      "mcp__github__update_pull_request_branch"
+      "mcp__github__update_pull_request_branch",
+      "Bash(rtk proxy *)",
+      "Bash(npm show *)"
     ]
   },
   "outputStyle": "default"

@@ -82,7 +82,7 @@ function originMatchesHost(request: NextRequest): boolean {
   }
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Rate limiting (applied before CSRF to block brute-force early)
